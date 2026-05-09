@@ -1,4 +1,4 @@
-export interface SolutionFeature  {
+export interface SolutionFeature {
   title: string;
   icon: string;
 };
@@ -15,4 +15,9 @@ export interface LostMMR {
 export interface FAQ {
   question: string;
   answer: string;
+}
+
+export interface SignUpFormState {
+  success: boolean | null;
+  message: string;
 }

@@ -1,19 +1,85 @@
 import { Link } from "react-router-dom";
+import React, { useActionState } from 'react';
 import '../styles/SignUp.css'
-
+import type { SignUpFormState } from '../models/types'
 import Footer from "./Footer";
 
+type FormState = {
+    loading: boolean;
+    message: string;
+    success: boolean;
+    data: {
+        company: string,
+        email: string,
+        pwd: string,
+    };
+}
+
+async function submitAction(
+    prevState: FormState, 
+    formData: FormData
+): Promise<FormState> {
+    const email = formData.get("email") as string;
+    const company = formData.get("company") as string;
+    const pwd = formData.get("password") as string;
+
+    if (!email) {
+        return {loading: false, message: "Email is required", success: false, 
+            data: {company: company, email: email, pwd: pwd}};
+    }
+
+    if (!pwd) {
+        return {loading: false, message: "Password is required", success: false, 
+            data: {company: company, email: email, pwd: pwd}};
+    }
+    try {
+        const response = await fetch("http://localhost:3500/register", {
+            method: "POST",
+            body: JSON.stringify({company, email, pwd}),
+            headers: {'Content-Type': 'application/json'}
+        });
+
+        if (response.status === 409) {
+            // email already exists
+            return { loading: false, message: 'Email already exists', 
+                success: false,  data: {company: company, email: email, pwd: pwd}}
+        }
+        const result = await response.json();
+
+        if (!response.ok) {
+            return { loading: false, message: result.message || "Submission failed", 
+                success: false, 
+                data: {
+                    company: result.data.company, 
+                    email: result.data.email, 
+                    pwd: result.data.pwd} }
+        }
+        
+        return {loading: false, message: result.message , success: true, 
+            data: result.data };
+    } catch (err) {
+        console.log(err)
+        return {loading: false, message: "Network error occured", 
+            success: false, data: {company: '', email: '', pwd: ''}}
+    }
+    
+}
+
 export default function SignUp() {
+    const [state, formAction, isPending] = useActionState(submitAction, {
+        loading: false, 
+        message: "",
+        success: false,
+        data: {company: '', email: '', pwd: ''},
+    });
+
     return (
         <>
             <main className="signup-page">
                 <header className="signup-header">
                     <Link to="/" className="signup-logo">
-                        <Link to="/" className="demo-logo">
                         <img className="signup-header-logo" loading="lazy" src="/letter_mark_white_bg.png"/>
                     </Link>
-                    </Link>
-
                     {/* 
                     <div className="signup-header-links">
                         <span>Already have an account?</span>
@@ -24,7 +90,6 @@ export default function SignUp() {
                     </div>
                     */}
                 </header>
-
                 <section className="signup-layout">
                     {/* LEFT SIDE */}
                     <div className="signup-card">
@@ -32,51 +97,55 @@ export default function SignUp() {
                             <span className="signup-badge">
                                 Start recovering failed payments
                             </span>
-
                             <h1>Create your account</h1>
-
                             <p>
                                 Connect Stripe and start tracking recoverable revenue in
                                 minutes.
                             </p>
                         </div>
-
-                        <form className="signup-form">
+                        <form className="signup-form" action={formAction} name="signup-form">
                             <div className="signup-field">
                                 <label htmlFor="company">Company name</label>
-
                                 <input
+                                    name="company"
                                     id="company"
                                     type="text"
                                     placeholder="Acme Inc."
-                                />
+                                    defaultValue={
+                                        (state.data?.company)
+                                    }/>
                             </div>
-
                             <div className="signup-field">
                                 <label htmlFor="email">Work email</label>
-
                                 <input
+                                    name="email"
                                     id="email"
                                     type="email"
-                                    placeholder="you@company.com"
-                                />
+                                    placeholder="you@company.com" 
+                                    defaultValue={
+                                        (state.data?.email)
+                                    }/>
                             </div>
-
                             <div className="signup-field">
                                 <label htmlFor="password">Password</label>
-
                                 <input
+                                    name="password"
                                     id="password"
                                     type="password"
                                     placeholder="Create a password"
-                                />
+                                    defaultValue={
+                                        (state.data?.pwd)
+                                    }/>
                             </div>
-
+                            {state.success === false ? 
+                                <p className='errMsg'>{state.message}</p> 
+                                : 
+                                <p className='successMsg'>{state.message}</p> 
+                            }
                             <button type="submit" className="signup-btn">
-                                Create Account
+                                {isPending === true ? 'Creating Account...' : 'Create Account' }
                             </button>
                         </form>
-
                         <p className="signup-footer-text">
                             By creating an account, you agree to our{" "}
                             <Link to="/terms">Terms</Link> and{" "}
@@ -88,21 +157,11 @@ export default function SignUp() {
                     <div className="signup-info-panel">
                         <div className="signup-info-card">
                             <h2>What happens next</h2>
-
                             <ul className="signup-checklist">
                                 <li>Connect Stripe securely</li>
-
-                                <li>
-                                    RetryForge analyzes failed subscription payments
-                                </li>
-
-                                <li>
-                                    Configure retry timing and recovery workflows
-                                </li>
-
-                                <li>
-                                    Start recovering revenue automatically
-                                </li>
+                                <li>RetryForge analyzes failed subscription payments</li>
+                                <li>Configure retry timing and recovery workflows</li>
+                                <li>Start recovering revenue automatically</li>
                             </ul>
                         </div>
 
@@ -110,9 +169,7 @@ export default function SignUp() {
                             <span className="signup-mini-label">
                                 Typical setup time
                             </span>
-
                             <strong>5–10 minutes</strong>
-
                             <p>
                                 No billing migration or major code changes required.
                             </p>
@@ -122,7 +179,6 @@ export default function SignUp() {
                             <span className="signup-mini-label">
                                 Built for Stripe Billing
                             </span>
-
                             <p>
                                 Works alongside your existing subscription setup and
                                 payment workflows.
