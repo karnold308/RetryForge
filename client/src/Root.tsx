@@ -8,6 +8,8 @@ import TermsAndConditions from "./components/Terms";
 import App from "./App";
 import Cookies from "./components/Cookies";
 
+
+
 function Root() {
     return (
         <BrowserRouter>

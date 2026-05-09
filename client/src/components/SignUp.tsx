@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
-import React, { useActionState } from 'react';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { trackPageView } from '../utils/analytics';
+import { useActionState } from 'react';
 import '../styles/SignUp.css'
-import type { SignUpFormState } from '../models/types'
 import Footer from "./Footer";
 
 type FormState = {
@@ -66,6 +68,14 @@ async function submitAction(
 }
 
 export default function SignUp() {
+    const location = useLocation();
+
+    useEffect(() => {
+        // Track page view on route change
+        const pageTitle = document.title;
+        trackPageView(location.pathname, pageTitle);
+    }, [location]);
+    
     const [state, formAction, isPending] = useActionState(submitAction, {
         loading: false, 
         message: "",
@@ -76,6 +86,7 @@ export default function SignUp() {
     return (
         <>
             <main className="signup-page">
+                <title>RetryForge - Sign Up</title>
                 <header className="signup-header">
                     <Link to="/" className="signup-logo">
                         <img className="signup-header-logo" loading="lazy" src="/letter_mark_white_bg.png"/>

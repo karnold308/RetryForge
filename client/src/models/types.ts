@@ -16,8 +16,3 @@ export interface FAQ {
   question: string;
   answer: string;
 }
-
-export interface SignUpFormState {
-  success: boolean | null;
-  message: string;
-}

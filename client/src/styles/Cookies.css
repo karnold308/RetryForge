@@ -1,0 +1,169 @@
+.cookie-policy-page {
+    background: #F9FAFB;
+    min-height: 100vh;
+    padding: 0 24px 80px 24px;
+}
+
+.cookie-policy-container {
+    max-width: 900px;
+    margin: 0 auto;
+
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 24px;
+
+    padding: 64px;
+
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 12px 24px rgba(0, 0, 0, 0.04);
+}
+
+.cookie-policy-header {
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.cookie-policy-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 8px 14px;
+    margin-bottom: 20px;
+
+    border-radius: 999px;
+
+    background: rgba(79, 70, 229, 0.08);
+    color: #4F46E5;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    border: 1px solid rgba(79, 70, 229, 0.12);
+}
+
+.cookie-policy-header h1 {
+    font-size: clamp(42px, 5vw, 64px);
+    line-height: 1.05;
+    letter-spacing: -2px;
+
+    color: #111827;
+
+    margin-bottom: 18px;
+}
+
+.cookie-policy-updated {
+    font-size: 15px;
+    color: #6B7280;
+}
+
+.cookie-policy-content {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+}
+
+.cookie-policy-section h2 {
+    font-size: 30px;
+    line-height: 1.15;
+    letter-spacing: -1px;
+
+    color: #111827;
+
+    margin-bottom: 18px;
+}
+
+.cookie-policy-section p {
+    font-size: 16px;
+    line-height: 1.8;
+    color: #4B5563;
+
+    margin-bottom: 18px;
+}
+
+.cookie-policy-section ul {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    margin-top: 18px;
+    padding-left: 20px;
+}
+
+.cookie-policy-section li {
+    position: relative;
+
+    font-size: 16px;
+    line-height: 1.8;
+    color: #4B5563;
+
+    padding-left: 12px;
+}
+
+.cookie-policy-section li::before {
+    content: "•";
+
+    position: absolute;
+    left: -8px;
+    top: 0;
+
+    color: #4F46E5;
+    font-weight: 700;
+}
+
+.cookie-policy-highlight {
+    background: rgba(79, 70, 229, 0.04);
+
+    border: 1px solid rgba(79, 70, 229, 0.12);
+    border-radius: 18px;
+
+    padding: 24px;
+}
+
+.cookie-policy-highlight p:last-child {
+    margin-bottom: 0;
+}
+
+.cookie-policy-contact {
+    margin-top: 8px;
+}
+
+.cookie-policy-contact a {
+    color: #4F46E5;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.cookie-policy-contact a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .cookie-policy-page {
+        padding: 0 16px 48px 16px;
+    }
+
+    .cookie-policy-container {
+        padding: 36px 24px;
+        border-radius: 20px;
+    }
+
+    .cookie-policy-header {
+        margin-bottom: 36px;
+        padding-bottom: 24px;
+    }
+
+    .cookie-policy-header h1 {
+        font-size: 42px;
+        letter-spacing: -1.5px;
+    }
+
+    .cookie-policy-section h2 {
+        font-size: 24px;
+    }
+
+    .cookie-policy-content {
+        gap: 36px;
+    }
+}

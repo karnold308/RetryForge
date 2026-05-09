@@ -1,10 +1,45 @@
+import { useState } from "react";
 import Footer from "./Footer";
-import Navbar from "./Navbar";
+import "../styles/Cookies.css"
+
 
 export default function Cookies() {
+    const [mobileOpen, setMobileOpen] = useState(false);
     return (
         <>
-            <Navbar />
+            <title>Privacy Policy</title>
+            <header>
+                <title>RetryForge - Cookie Policy</title>
+                <nav className="navbar">
+                    <a href="/" className="logo">
+                        <img className="headerLogo" loading="lazy" src="/letter_mark_white_bg.png" />
+                    </a>
+
+                    <div className="nav-links desktop-nav">
+                        <a href="/demo" className="nav-btn-secondary">Book Demo</a>
+                        {/* <a href="/login" className="nav-btn-secondary">Login</a> */}
+                        <a href="/signup" className="nav-btn-primary">Get Started</a>
+                    </div>
+
+
+                    {/* Mobile Hamburger */}
+                    <button
+                        type="button"
+                        className="mobile-menu-btn"
+                        onClick={() => setMobileOpen(!mobileOpen)}>
+                        ☰
+                    </button>
+                </nav>
+
+                {/* Mobile Dropdown */}
+
+                {mobileOpen && (
+                    <div className="mobile-menu">
+                        <a href="/demo">Book Demo</a>
+                        <a href="/signup" className="nav-btn-primary">Get Started</a>
+                    </div>
+                )}
+            </header>
             <main className="cookie-policy-page">
                 <section className="cookie-policy-hero">
                     <div className="cookie-policy-container">

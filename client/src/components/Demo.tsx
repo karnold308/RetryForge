@@ -1,16 +1,26 @@
 import { Link } from "react-router-dom";
-
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { trackPageView } from '../utils/analytics';
 import Footer from "./Footer";
 import "../styles/Demo.css";
 
 export default function Demo() {
+    const location = useLocation();
+
+    useEffect(() => {
+        // Track page view on route change
+        const pageTitle = document.title;
+        trackPageView(location.pathname, pageTitle);
+    }, [location]);
+    
     return (
         <>
             <main className="demo-page">
-
+                <title>RetryForge - Demo</title>
                 <header className="demo-header">
                     <Link to="/" className="demo-logo">
-                        <img className="demo-header-logo" loading="lazy" src="/letter_mark_white_bg.png"/>
+                        <img className="demo-header-logo" loading="lazy" src="/letter_mark_white_bg.png" />
                     </Link>
                 </header>
                 {/* HERO */}

@@ -1,10 +1,56 @@
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { trackPageView } from '../utils/analytics';
+import { useState } from "react";
 import Footer from "./Footer";
-import Navbar from "./Navbar";
+
 
 export default function TermsAndConditions() {
+    const [mobileOpen, setMobileOpen] = useState(false);
+
+    const location = useLocation();
+
+    useEffect(() => {
+        // Track page view on route change
+        const pageTitle = document.title;
+        trackPageView(location.pathname, pageTitle);
+    }, [location]);
+
+
     return (
         <>
-            <Navbar />
+            <header>
+                <title>RetryForge - Terms and Conditions</title>
+                <nav className="navbar">
+                    <a href="/" className="logo">
+                        <img className="headerLogo" loading="lazy" src="/letter_mark_white_bg.png" />
+                    </a>
+
+                    <div className="nav-links desktop-nav">
+                        <a href="/demo" className="nav-btn-secondary">Book Demo</a>
+                        {/* <a href="/login" className="nav-btn-secondary">Login</a> */}
+                        <a href="/signup" className="nav-btn-primary">Get Started</a>
+                    </div>
+
+
+                    {/* Mobile Hamburger */}
+                    <button
+                        type="button"
+                        className="mobile-menu-btn"
+                        onClick={() => setMobileOpen(!mobileOpen)}>
+                        ☰
+                    </button>
+                </nav>
+
+                {/* Mobile Dropdown */}
+
+                {mobileOpen && (
+                    <div className="mobile-menu">
+                        <a href="/demo">Book Demo</a>
+                        <a href="/signup" className="nav-btn-primary">Get Started</a>
+                    </div>
+                )}
+            </header>
             <main className="terms-page">
                 <div className="terms-container">
                     <div className="terms-card">

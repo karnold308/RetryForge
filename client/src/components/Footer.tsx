@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 
 export default function Footer() {
     return (
@@ -7,12 +9,15 @@ export default function Footer() {
                 {/* Left */}
                 <div className="footer-brand">
                     <div className="footer-logo-row">
-                        <img
-                            loading="lazy"
-                            src="/letter_mark_white_bg.png"
-                            className="footer-logo"
-                            alt="RetryForge logo"
-                        />
+                        <Link to="/" className="signup-logo">
+                            <img
+                                loading="lazy"
+                                src="/letter_mark_white_bg.png"
+                                className="footer-logo"
+                                alt="RetryForge logo"
+                            />
+                        </Link>
+
                         <span className="footer-brand-name">
                             RetryForge
                         </span>
