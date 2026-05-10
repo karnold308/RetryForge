@@ -13,7 +13,7 @@ export default function Comparisons() {
                         <ul>
                             <li className="comparison-feature">
                                 <span className="comparison-feature-text">
-                                    Generic retry logic
+                                    Retries at generic intervals
                                 </span>
                             </li>
                             <li className="comparison-feature">
@@ -23,12 +23,12 @@ export default function Comparisons() {
                             </li>
                             <li className="comparison-feature">
                                 <span className="comparison-feature-text">
-                                    No visibility into recovery optimization
+                                    Limited visibility into recovery performance
                                 </span>
                             </li>
                             <li className="comparison-feature">
                                 <span className="comparison-feature-text">
-                                    No per-customer retry strategy
+                                    Not optimized for your customer behavior
                                 </span>
                             </li>
                         </ul>
@@ -40,25 +40,25 @@ export default function Comparisons() {
                             <li className="comparison-feature">
                                 <div className="comparison-feature-icon">✓</div>
                                 <span className="comparison-feature-text">
-                                    Recover more failed payments automatically
+                                    Optimized retry timing
                                 </span>
                             </li>
                             <li className="comparison-feature">
                                 <div className="comparison-feature-icon">✓</div>
                                 <span className="comparison-feature-text">
-                                    Full control over recovery logic
+                                    Recovery analytics
                                 </span>
                             </li>
                             <li className="comparison-feature">
                                 <div className="comparison-feature-icon">✓</div>
                                 <span className="comparison-feature-text">
-                                    Track recovered MRR, retry performance, and recovery rate in real time
+                                    Higher recovered MRR
                                 </span>
                             </li>
                             <li className="comparison-feature">
                                 <div className="comparison-feature-icon">✓</div>
                                 <span className="comparison-feature-text">
-                                    Customer-specific retry strategies
+                                    Customer-specific workflows
                                 </span>
                             </li>
                         </ul>

@@ -15,9 +15,9 @@
                     <a href="#features" className="nav-btn-ghost">Features</a>
                     <a href="#howItWorks" className="nav-btn-ghost">How It Works</a>
                     <a href="#pricing" className="nav-btn-ghost">Pricing</a>
-                    <a href="/demo" className="nav-btn-secondary">Book Demo</a> 
+                    <a href="/demo" className="nav-btn-primary">Book a Demo</a>  
                     {/* <a href="/login" className="nav-btn-secondary">Login</a> */}
-                    <a href="/signup" className="nav-btn-primary">Get Started</a>
+                    {/* <a href="/signup" className="nav-btn-primary">Get Started</a> */}
                 </div>
             
 
@@ -37,8 +37,8 @@
                     <a href="#features">Features</a>
                     <a href="#howItWorks">How It Works</a>
                     <a href="#pricing">Pricing</a>
-                    <a href="/demo">Book Demo</a>
-                    <a href="/signup" className="nav-btn-primary">Get Started</a>
+                    <a href="/demo" className="nav-btn-primary">Book a Demo</a>
+                    {/* <a href="/signup" className="nav-btn-primary">Get Started</a> */}
                 </div>
             )}
         </header>

@@ -11,6 +11,7 @@ import { FAQ } from "./FAQ"
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { trackPageView } from '../utils/analytics';
+import RecoveryFlow from "./RecoveryFlow"
 
 
 export default function Main() {
@@ -30,6 +31,7 @@ export default function Main() {
             <Problem />
             <Solution />
             <HowItWorks />
+            <RecoveryFlow />
             <Comparisons />
             <MainPricing />
             <FAQ />

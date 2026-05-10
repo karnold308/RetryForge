@@ -7,7 +7,7 @@ export default function FinalCall() {
                 Connect Stripe in minutes and recover revenue without manual follow-up.
             </p>
 
-            <a href="/signup" className="nav-btn-primary"
+            <a href="/signup" className="nav-btn-primary final-cta-btn"
                 style={{width: "165px"}}>
                 Get Started Free
             </a>

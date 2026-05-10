@@ -13,7 +13,6 @@ import Cookies from "./components/Cookies";
 function Root() {
     return (
         <BrowserRouter>
-
             <Routes>
                 <Route path="/" element={<App />} />
                 <Route path="/dashboard" element={<Dashboard />} />

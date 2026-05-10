@@ -4,7 +4,7 @@
  * @see https://developers.google.com/analytics/devguides/collection/gtagjs
  */
 
-const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-XXXXXXXXXX';
+const GA_MEASUREMENT_ID = import.meta.env.GA_MEASUREMENT_ID || 'G-XXXXXXXXXX';
 let isInitialized = false;
 
 /**

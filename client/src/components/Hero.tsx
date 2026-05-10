@@ -19,18 +19,19 @@ export default function Hero() {
 
                     {/* Headline */}
                     <h1 className="text-5xl md:text-6xl font-semibold tracking-tight text-gray-900 leading-tight mb-5">
-                        Stop losing revenue to failed payments
+                        Recover failed Stripe payments automatically
                     </h1>
 
                     {/* Subheadline */}
                     <p className="text-lg text-gray-600 mb-8 max-w-lg">
-                        Recover failed Stripe subscription payments automatically. RetryForge is built for subscription SaaS companies using Stripe to help recover failed payments,
-                        reduce churn, and increase MRR automatically.
+                        RetryForge automatically retries failed Stripe subscription payments using optimized timing and recovery workflows — helping SaaS companies recover lost MRR without engineering work.
                     </p>
 
                     {/* CTA */}
                     <div className="flex gap-4">
+                        {/*
                         <a href="/demo" className="nav-btn-secondary heroDemoBtn">Book a Demo</a> 
+                        */ }
                         <a href="#calculator" className="nav-btn-secondary how-much-losing">See How Much You're Losing</a>
                     </div>
                     <p className="mt-6 text-sm text-gray-500">
