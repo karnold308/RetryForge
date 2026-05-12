@@ -134,3 +134,5 @@ pool.connect()
     console.log("can't connect to db")
 })
 
+
+module.exports = app;
