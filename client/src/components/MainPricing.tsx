@@ -27,8 +27,9 @@ export default function MainPricing() {
                         </span>
                     </div>
                     <p className="pricing-revenue-share">
-                        + 5% of recovered revenue
+                        + 5% of recovered revenue.
                     </p>
+                    <p>Most customers recover their first failed invoice within days, often covering the cost of our platform.</p>
                     <ul className="pricing-features">
                         <li>Automatic retries</li>
                         <li>Send branded card-update emails before subscriptions cancel.</li>
@@ -37,7 +38,7 @@ export default function MainPricing() {
                     </ul>
 
                     <a href="/signup" className="nav-btn-primary pricing-btn">
-                        Get Started
+                        Start Recovering Revenue
                     </a>
                 </div>
                 <p className="pricing-note">

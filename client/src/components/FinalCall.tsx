@@ -9,7 +9,7 @@ export default function FinalCall() {
 
             <a href="/signup" className="nav-btn-primary final-cta-btn"
                 style={{width: "165px"}}>
-                Get Started Free
+                Start Recovering Revenue
             </a>
         </section>
     )

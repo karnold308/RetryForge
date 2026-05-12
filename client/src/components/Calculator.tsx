@@ -8,7 +8,12 @@ export default function Calculator() {
     const [inputFailedRate, setInputFailedRate] = useState<number>(8);
     const [inputRecovRate, setInputRecovRate] = useState<number>(25);
     const [calcResult, setCalcResult] = useState<LostMMR | null>(null);
-
+    const mmrMin = 5000;
+    const mmrMax = 250000;
+    const failMin = 5;
+    const failMax = 15;
+    const recovMin = 10;
+    const recovMax = 30;
 
     const calc = () => {
         const failureRate = inputFailedRate / 100;
@@ -47,17 +52,43 @@ export default function Calculator() {
 
     const formatCurrency = (value: number): string => {
         return new Intl.NumberFormat('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(value);
     };
 
-    const formatCompactNumber = (num: number) =>
-        Intl.NumberFormat("en", {
-            notation: "compact",
-            maximumFractionDigits: 1,
-        }).format(num);
 
+
+    const formatCompactNumber = (num: number) => {
+        let newNum = null;
+        if (num < 1000) {
+            newNum = Intl.NumberFormat("en", {
+                notation: "compact",
+                maximumFractionDigits: 0,
+            }).format(num);
+        } else {
+            newNum = Intl.NumberFormat("en", {
+                notation: "compact",
+                maximumFractionDigits: 1,
+            }).format(num);
+        }
+        return newNum;
+    }
+
+    const formatLargeNumber = (num: number) => {
+        let newNum = null;
+        if (num < 1000) {
+            newNum = Intl.NumberFormat("en", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(num);
+        } else {
+            newNum = Intl.NumberFormat("en", {
+                maximumFractionDigits: 0,
+            }).format(num);
+        }
+        return newNum;
+    }
 
 
     useEffect(() => {
@@ -67,10 +98,10 @@ export default function Calculator() {
 
     return (
         <>
-            <section className="container">
+            <section className="container calcContainer">
                 <div>
-                    <h2>SaaS companies typically lose 5-15% of subscription revenue to failed payments.</h2>
-                    <p>Estimate how much RetryForge could recover.</p>
+                    <h2 className="section-title">See how much revenue you could recover</h2>
+                    <p>Estimate lost subscription revenue and project how much RetryForge can recover automatically.</p>
                 </div>
                 <div id="calculator" className="px-8 grid md:grid-cols-2 gap-12 items-center">
                     <div>
@@ -80,18 +111,12 @@ export default function Calculator() {
                         <div className="calc-control">
                             <div className="calc-control-header">
                                 <label>Monthly Subscription Revenue</label>
-                                <span>${inputMMRValue}</span>
+                                <span>${formatCurrency(inputMMRValue)}</span>
                             </div>
                             <div className="slider-row">
                                 <span className="slider-min">$5k</span>
                                 <input
-                                    id="mrr"
-                                    type="range"
-                                    min="5000"
-                                    max="250000"
-                                    step="100"
-                                    value={inputMMRValue}
-                                    onChange={handleMMRChange}
+                                    id="mrr" type="range" min={mmrMin} max={mmrMax} step="100" value={inputMMRValue} onChange={handleMMRChange}
                                 />
                                 <span className="slider-max">$250k</span>
                             </div>
@@ -104,12 +129,7 @@ export default function Calculator() {
                             <div className="slider-row">
                                 <span className="slider-min">5%</span>
                                 <input
-                                    type="range"
-                                    min="5"
-                                    max="15"
-                                    step=".01"
-                                    value={inputFailedRate}
-                                    onChange={handleFailedRateChange}
+                                    type="range" min={failMin} max={failMax} step="1" value={inputFailedRate} onChange={handleFailedRateChange}
                                 />
                                 <span className="slider-max">15%</span>
                             </div>
@@ -122,117 +142,60 @@ export default function Calculator() {
                             <div className="slider-row">
                                 <span className="slider-min">10%</span>
                                 <input
-                                    type="range"
-                                    min="10"
-                                    max="30"
-                                    step=".01"
-                                    value={inputRecovRate}
-                                    onChange={handleRecovRateChange}
+                                    type="range" min={recovMin} max={recovMax} step="1" value={inputRecovRate} onChange={handleRecovRateChange}
                                 />
                                 <span className="slider-max">30%</span>
                             </div>
                         </div>
                     </div>
                     <div>
-                        {/*
-                            bar char widths explained:
-                             lostRevenue = yearlyFailedPayments;
-                             recoveredRevenue = yearlyRecoveredRevenue;
-                             retainedProfit = yearlyNetProfit;
+                        {101 <= (null !== calcResult ? calcResult.netGain * 12 : 0) &&
+                            <div className="heroProfitCard">
 
-                             total = lostRevenue + recoveredRevenue + retainedProfit;
-
-                             lostWidth = (lostRevenue / total) * 100;
-                             recoveredWidth = (recoveredRevenue / total) * 100;
-                             profitWidth = (retainedProfit / total) * 100;
-                            
-                        */}
-                        <div className="heroProfitCard">
-                            <span>Projected Yearly Profit</span>
-                            <strong>+${null !== calcResult ? (formatCompactNumber(calcResult.netGain * 12)) : 0}/yr</strong>
-                            <p>Pays for itself after one recovered invoice.</p>
-                        </div>
-                        <div className="revenue-chart">
-                            <div className="stackedChart">
-                                <div className="stack lostSegment" style={{
-                                    "width":
-                                        `${null !== calcResult
-                                            ? (((calcResult.failedRevenue * 12) /
-                                                ((calcResult.failedRevenue * 12)
-                                                    + (calcResult.recoverable * 12)
-                                                    + (calcResult.netGain * 12)))
-                                                * 100)
-                                            : 0}%`
-                                }}>
+                                <div className="lossBadge">
+                                    Silent revenue leak
                                 </div>
 
-                                <div className="stack recoveredSegment" style={{
-                                    "width":
-                                        `${null !== calcResult
-                                            ? (((calcResult.recoverable * 12) /
-                                                ((calcResult.failedRevenue * 12)
-                                                    + (calcResult.recoverable * 12)
-                                                    + (calcResult.netGain * 12)))
-                                                * 100)
-                                            : 0}%`
-                                }}>
+                                <p className="lossLabel">
+                                    Revenue lost to failed payments
+                                </p>
+
+                                <h3 className="lossValue">
+                                    -${null != calcResult ? formatLargeNumber(calcResult.failedRevenue) : 0}<span>/yr</span>
+                                </h3>
+
+                                <p className="lossSubtext">
+                                    Most SaaS companies never notice this revenue leak.
+                                </p>
+
+                                <div className="recoveryEstimate">
+                                    <p className="recoveryLabel">
+                                        RetryForge could automatically recover
+                                    </p>
+
+                                    <strong className="recoveryValue">
+                                        +${null != calcResult ? formatCompactNumber(calcResult.recoverable) : 0}/yr
+                                    </strong>
+
+                                    <p className="recoveryProfit">
+                                        ≈ +${null != calcResult ? formatCurrency(calcResult.netGain) : 0}/mo net after fees
+                                    </p>
                                 </div>
 
-                                <div className="stack profitSegment" style={{
-                                    "width":
-                                        `${null !== calcResult
-                                            ? (((calcResult.netGain * 12) /
-                                                ((calcResult.failedRevenue * 12)
-                                                    + (calcResult.recoverable * 12)
-                                                    + (calcResult.netGain * 12)))
-                                                * 100)
-                                            : 0}%`
-                                }}>
-                                </div>
                             </div>
+                        }
+                        {101 > (null !== calcResult ? calcResult.netGain * 12 : 0) &&
+                            <a href="/signup" className="nav-btn-primary cust-plan-btn"
+                                style={{ width: "165px" }}>
+                                See your custom recovery plan
+                            </a>
+                        }
 
-                            <div className="chartLegend">
-                                <div className="legendItem">
-                                    <span className="legendDot lostDot"></span>
-                                    <span>Lost Revenue</span>
-                                    <strong>${(null !== calcResult ? (formatCompactNumber(calcResult.failedRevenue * 12)) : 0)}</strong>
-                                </div>
-
-                                <div className="legendItem">
-                                    <span className="legendDot recoveredDot"></span>
-                                    <span>Recovered Revenue</span>
-                                    <strong>${(null !== calcResult ? formatCompactNumber(calcResult.recoverable * 12) : 0)}</strong>
-                                </div>
-
-                                <div className="legendItem">
-                                    <span className="legendDot profitDot"></span>
-                                    <span>Retained Profit</span>
-                                    <strong>${(null !== calcResult ? formatCompactNumber(calcResult.netGain * 12) : 0)}</strong>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="miniMetrics">
-                            <div className="miniMetric">
-                                <span>Failed Payments</span>
-                                <strong>${null !== calcResult ? (formatCompactNumber(calcResult.failedRevenue * 12)) : 0}/yr</strong>
-                            </div>
-
-                            <div className="miniMetric">
-                                <span>Recovered Revenue</span>
-                                <strong>${null !== calcResult ? (formatCompactNumber(calcResult.recoverable * 12)) : 0}/yr</strong>
-                            </div>
-
-                            <div className="miniMetric">
-                                <span>RetryForge Fees</span>
-                                <strong>${null !== calcResult ? (calcResult.weCharge * 12).toLocaleString('en-US', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                }) : 0}/yr</strong>
-                            </div>
-                        </div>
+                        <p className="calcFootnote">
+                            Recovery rates vary depending on retry timing and customer behavior.
+                        </p>
                     </div>
                 </div>
-                <p>Recovery rates vary depending on retry strategy and customer behavior.</p>
             </section>
         </>
     )

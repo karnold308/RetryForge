@@ -5,7 +5,7 @@ export default function Comparisons() {
             <div className="container px-8 grid">
                 <div>
                     <h2 className="comparison-title section-title">Why not just use Stripe?</h2>
-                    <p className="comparison-subtitle">Stripe handles payments infrastructure. RetryForge optimizes revenue recovery.</p>
+                    <p className="comparison-subtitle">Stripe handles payments infrastructure. RetryForge optimizes reclaiming failed invoices.</p>
                 </div>
                 <div className="comparison-table relative grid gap-8 lg:grid-cols-2">
                     <div className="stripe-card">
@@ -13,7 +13,7 @@ export default function Comparisons() {
                         <ul>
                             <li className="comparison-feature">
                                 <span className="comparison-feature-text">
-                                    Retries at generic intervals
+                                    One-size-fits-all retry timing
                                 </span>
                             </li>
                             <li className="comparison-feature">
@@ -23,7 +23,7 @@ export default function Comparisons() {
                             </li>
                             <li className="comparison-feature">
                                 <span className="comparison-feature-text">
-                                    Limited visibility into recovery performance
+                                    No recovery analytics
                                 </span>
                             </li>
                             <li className="comparison-feature">

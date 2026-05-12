@@ -19,12 +19,12 @@ export default function Hero() {
 
                     {/* Headline */}
                     <h1 className="text-5xl md:text-6xl font-semibold tracking-tight text-gray-900 leading-tight mb-5">
-                        Recover failed Stripe payments automatically
+                        Recover subscription revenue Stripe leaves behind
                     </h1>
 
                     {/* Subheadline */}
                     <p className="text-lg text-gray-600 mb-8 max-w-lg">
-                        RetryForge automatically retries failed Stripe subscription payments using optimized timing and recovery workflows — helping SaaS companies recover lost MRR without engineering work.
+                        Recover failed Stripe payments automatically before subscriptions churn.
                     </p>
 
                     {/* CTA */}
@@ -34,17 +34,30 @@ export default function Hero() {
                         */ }
                         <a href="#calculator" className="nav-btn-secondary how-much-losing">See How Much You're Losing</a>
                     </div>
-                    <p className="mt-6 text-sm text-gray-500">
-                        Works with Stripe Billing • Setup in minutes • No code required
-                    </p>
+                    <div className="hero-trust-bar">
+                        <div className="hero-trust-item">
+                            <span className="hero-trust-dot"></span>
+                            Works with Stripe Billing
+                        </div>
+
+                        <div className="hero-trust-item">
+                            <span className="hero-trust-dot"></span>
+                            Setup in minutes
+                        </div>
+
+                        <div className="hero-trust-item">
+                            <span className="hero-trust-dot"></span>
+                            No billing migration required
+                        </div>
+                    </div>
                 </div>
 
                 {/* right column */}
                 <div className="relative">
                     <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-4">
                         <img
-                            src="/dashboard.png"
-                            alt="RetryForge dashboard"
+                            src="/dashboard_mockup.png"
+                            alt="RetryForge dashboard showing recovered revenue analytics"
                             className="rounded-lg"
                         />
                     </div>

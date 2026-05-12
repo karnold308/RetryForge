@@ -48,7 +48,7 @@ export default function HowItWorks() {
                     <div className="howItWorks-card hiw-important">
                         <div className="howItWorks-cardTitleDiv">
                             <div className="howItWorks-number">3.</div>
-                            <h3>&nbsp;Recover revenue automatically</h3>
+                            <h3>&nbsp;Recover Failed Payments</h3>
                         </div>
                         <p>Automatically retry failed invoices at higher-converting times run in the background to recover lost payments.</p>
                     </div>
