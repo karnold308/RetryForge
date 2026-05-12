@@ -1,11 +1,11 @@
 
-(async () => {
+
     const fs = await import('fs');
     const fsPromises = await import('fs').promises;
     const path = await import('path');
     const { format } = await import('date-fns');
     const { v4: uuid } = await import('uuid');
-})();
+
 
 
 
@@ -27,7 +27,7 @@ const logEvents = async (message, logName) => {
 
 }
 
-const logger = (req, res, next) => {
+const logger = async (req, res, next) => {
     logEvents(`${req.method}\t${req.headers.origin}\t${req.url}`, 'reqLog.txt');
     console.log(`${req.method} ${req.path}`);
     next();
