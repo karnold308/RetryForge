@@ -1,6 +1,11 @@
 const User = require('../model/User');
-const bcrypt = require('bcrypt');
-const {v4: uuid } = require('uuid'); 
+
+(async () => {
+    const fs = await import('fs');
+    const bcrypt = await import('bcrypt');
+    const {v4: uuid } = await import('uuid'); 
+})();
+
 
 const handleNewUser = async (req,res) => {
     const { company, pwd, email } = req.body;
