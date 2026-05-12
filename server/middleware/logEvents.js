@@ -1,9 +1,13 @@
 const { format } = require('date-fns');
 const { v4: uuid } = require('uuid');
 
-const fs = require('fs');
-const fsPromises = require('fs').promises;
-const path = require('path');
+
+(async () => {
+  const fs = await import('fs');
+  const fsPromises = import('fs').promises;
+  const path = import('path');
+})();
+
 
 
 // can be more than one parameter besides 'message'
