@@ -4,7 +4,7 @@ const host = process.env.DB_HOST;
 const dbName = process.env.DB_NAME;
 const port = process.env.DB_PORT;
 
-const { Sequelize, DataTypes } = require('sequelize')
+const { Sequelize, DataTypes } = import('sequelize')
 const sequelize = new Sequelize(dbName, user, pwd, {
     host: 'localhost',
     dialect: 'postgres'

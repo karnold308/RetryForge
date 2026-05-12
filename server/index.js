@@ -1,19 +1,19 @@
 
-require('dotenv').config();
-const express = require('express');
+import('dotenv').config();
+const express = import('express');
 const app = express();
-const path = require('path');
-const cors = require('cors');
-const corsOptions = require('./config/corsOptions');
-const { logger } = require('./middleware/logEvents');
-const errorHandler = require('./middleware/errorHandler');
-const verifyJWT = require('./middleware/verifyJWT');
-const cookieParser = require('cookie-parser');
-const credentials = require('./middleware/credentials');
-const { pool } = require('./config/dbConn');
+const path = import('path');
+const cors = import('cors');
+const corsOptions = import('./config/corsOptions');
+const { logger } = import('./middleware/logEvents');
+const errorHandler = import('./middleware/errorHandler');
+const verifyJWT = import('./middleware/verifyJWT');
+const cookieParser = import('cookie-parser');
+const credentials = import('./middleware/credentials');
+const { pool } = import('./config/dbConn');
 
 
-const dns = require('node:dns');
+const dns = import('node:dns');
 dns.setServers(['8.8.8.8', '8.8.4.4']); 
 
 const PORT = process.env.PORT || 3500;
@@ -48,17 +48,17 @@ app.use(cookieParser());
 // routes
 // works like waterfall, everything after each line uses
 // what was setup above it
-// app.use('/', require('./routes/root'));
-app.use('/register', require('./routes/register'));
-app.use('/auth', require('./routes/auth'));
-app.use('/refresh', require('./routes/refresh'));
-app.use('/logout', require('./routes/logout'));
+// app.use('/', import('./routes/root'));
+app.use('/register', import('./routes/register'));
+app.use('/auth', import('./routes/auth'));
+app.use('/refresh', import('./routes/refresh'));
+app.use('/logout', import('./routes/logout'));
 
 
 
 // dont want JWT on register or auth
 app.use(verifyJWT);
-// app.use('/employees', require('./routes/api/employees'));
+// app.use('/employees', import('./routes/api/employees'));
 
 
 // Regex no longer works like this in Express 5

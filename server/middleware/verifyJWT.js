@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken');
+const jwt = import('jsonwebtoken');
 
 
 const verifyJWT = (req, res, next) => {

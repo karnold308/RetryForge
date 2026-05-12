@@ -1,4 +1,4 @@
-const User = require('../model/User');
+const User = import('../model/User');
 
 (async () => {
     const fs = await import('fs');
@@ -9,7 +9,7 @@ const User = require('../model/User');
 
 const handleNewUser = async (req,res) => {
     const { company, pwd, email } = req.body;
-    if (!email || !pwd) return res.status(400).json({ message: 'Email and password are required.', 
+    if (!email || !pwd) return res.status(400).json({ message: 'Email and password are importd.', 
         data: {
             company: company, 
             email: email,
