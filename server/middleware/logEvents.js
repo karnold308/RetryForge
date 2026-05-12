@@ -1,11 +1,10 @@
-const { format } = require('date-fns');
-const { v4: uuid } = require('uuid');
-
 
 (async () => {
-  const fs = await import('fs');
-  const fsPromises = import('fs').promises;
-  const path = import('path');
+    const fs = await import('fs');
+    const fsPromises = import('fs').promises;
+    const path = import('path');
+    const { format } = import('date-fns');
+    const { v4: uuid } = import('uuid');
 })();
 
 
@@ -21,14 +20,14 @@ const logEvents = async (message, logName) => {
             await fsPromises.mkdir(path.join(__dirname, '..', 'logs'))
         }
         await fsPromises.appendFile(path.join(__dirname, '..', 'logs', logName), logItem)
-    } catch(err) {
+    } catch (err) {
         console.log(err);
     }
     // testing
 
 }
 
-const logger = (req,res, next) => {
+const logger = (req, res, next) => {
     logEvents(`${req.method}\t${req.headers.origin}\t${req.url}`, 'reqLog.txt');
     console.log(`${req.method} ${req.path}`);
     next();
