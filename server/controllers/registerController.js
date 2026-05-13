@@ -8,9 +8,10 @@ const { v4: uuid } = await import('uuid');
 
 
 const handleNewUser = async (req, res) => {
+    console.log("handleNewUser start")
     const { company, pwd, email } = req.body;
     if (!email || !pwd) return res.status(400).json({
-        message: 'Email and password are importd.',
+        message: 'Email and password are required.',
         data: {
             company: company,
             email: email,
@@ -36,7 +37,7 @@ const handleNewUser = async (req, res) => {
         });
 
         // console.log(newUser);
-
+        console.log("handleNewUser end")
         res.status(201).json({ success: true, message: `New user ${email} created` });
     } catch (err) {
         res.status(500).json({ 'message': err.message });
