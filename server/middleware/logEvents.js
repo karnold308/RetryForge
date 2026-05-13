@@ -1,8 +1,8 @@
 
 
-    const fs = await import('fs');
-    const fsPromises = await import('fs').promises;
-    import  path  from 'path';
+    const fs = import('fs');
+    const fsPromises = import('fs').promises;
+    const dir = import.meta.dirname;
     import { format } from 'date-fns';
     const { v4: uuid } = await import('uuid');
 
@@ -16,10 +16,10 @@ const logEvents = async (message, logName) => {
     console.log(logItem);
 
     try {
-        if (!fs.existsSync(path.join(__dirname, '..', 'logs'))) {
-            await fsPromises.mkdir(path.join(__dirname, '..', 'logs'))
+        if (!fs.existsSync(path.join(dir, '..', 'logs'))) {
+            await fsPromises.mkdir(path.join(dir, '..', 'logs'))
         }
-        await fsPromises.appendFile(path.join(__dirname, '..', 'logs', logName), logItem)
+        await fsPromises.appendFile(path.join(dir, '..', 'logs', logName), logItem)
     } catch (err) {
         console.log(err);
     }
