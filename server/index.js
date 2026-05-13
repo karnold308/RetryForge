@@ -8,7 +8,7 @@ const { errorHandler } = await import('./middleware/errorHandler.js');
 const { logger } = await import('./middleware/logEvents.js');
 const corsOptions = import('./config/corsOptions.js');
 const { credentials } = await import('./middleware/credentials.js');
-import  { pool } from './config/dbConn.js';
+import  { pool, test } from './config/dbConn.js';
 import cookieParser from 'cookie-parser';
 import dns from 'node:dns';
 dns.setServers(['8.8.8.8', '8.8.4.4']);
@@ -127,7 +127,7 @@ app.get('/chain', [one, two,three]);
 app.use(errorHandler);
 
 
-
+test()
 pool.connect()
     .then(() => {
         console.log('Connected to postgresql DB');
