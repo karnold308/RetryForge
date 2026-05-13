@@ -8,7 +8,7 @@ const { errorHandler } = await import('./middleware/errorHandler.js');
 const { logger } = await import('./middleware/logEvents.js');
 const corsOptions = import('./config/corsOptions.js');
 const { credentials } = await import('./middleware/credentials.js');
-import  { pool, test } from './config/dbConn.js';
+import  { pool } from './config/dbConn.js';
 import cookieParser from 'cookie-parser';
 import dns from 'node:dns';
 dns.setServers(['8.8.8.8', '8.8.4.4']);
@@ -33,21 +33,16 @@ app.use(credentials);
 // cross origin resource sharing
 app.use(cors(corsOptions));
 
-
 // built-in middleware to handle urlencoded data,
 // in other words, form-data:
 // 'content-type: application/x-www-form-urlencoded'
 app.use(express.urlencoded({ extended: false }));
-
 // built-in middleware for json
 app.use(express.json());
-
 // middleware for cookies
 app.use(cookieParser());
-
 // serve static files
 // app.use(express.static(path.join(__dirname, '/public')));
-
 // routes
 // works like waterfall, everything after each line uses
 // what was setup above it
@@ -57,60 +52,40 @@ app.use('/auth', auth);
 app.use('/refresh', refresh);
 app.use('/logout', logout);
 
-
-
 // dont want JWT on register or auth
 app.use(verifyJWT);
 // app.use('/employees', import('./routes/api/employees'));
-
-
 // Regex no longer works like this in Express 5
 // app.get('^/$|/index(.html)?', (req, res) => {
 /* app.get('/', (req, res) => {
     // res.sendFile('./views/index.html', { root: __dirname });
     res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
- 
- 
 app.get('/new-page.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'new-page.html'));
 });
- 
 app.get('/old-page.html', (req, res) => {
     res.redirect(301, '/new-page.html'); // 302 by default, need 301
 });
  */
 /* 
-// route handling before learning Express
-// route handlers, chained 
-app.get('/hello.html', (req,res, next) => {
-    console.log('attempted to load hello.html');
-    next()
-}, (req, res) => {
-    res.send('hello')
-})
  
 // chain route handlers
 const one = (req, res, next) => {
     console.log('one');
     next();
 }
- 
 const two = (req, res, next) => {
     console.log('two');
     next();
 }
- 
 const three = (req, res, next) => {
     console.log('three');
     res.send('finished')
 }
- 
 app.get('/chain', [one, two,three]);
  
  */
-
-
 // app.use('/')
 /* app.all('{*splat}', (req, res) => {
     res.status(404);
@@ -126,8 +101,6 @@ app.get('/chain', [one, two,three]);
 
 app.use(errorHandler);
 
-
-test()
 pool.connect()
     .then(() => {
         console.log('Connected to postgresql DB');

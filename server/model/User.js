@@ -1,12 +1,18 @@
-const user = process.env.DB_USER;
-const pwd = encodeURIComponent(process.env.DB_PWD); 
-const host = process.env.DB_HOST;
-const dbName = process.env.DB_NAME;
+const user = process.env.NODE_ENV === 'production' ? process.env.PGHOST : process.env.DB_USER;
+
+const pwd = process.env.NODE_ENV === 'production' ? encodeURIComponent(process.env.PGPASSWORD) : encodeURIComponent(process.env.DB_PWD) ; 
+const host = process.env.NODE_ENV === 'production' ? process.env.PGHOST : process.env.DB_HOST;
+const dbName = process.env.NODE_ENV === 'production' ? process.env.PGDATABASE : process.env.DB_NAME;
 const port = process.env.DB_PORT;
+
+
+const connectionString = process.env.NODE_ENV === 'production'
+  ? process.env.retryforge_DATABASE_URL
+  : `postgresql://${user}:${pwd}@${host}:${port}/${dbName}`
 
 import { Sequelize, DataTypes } from 'sequelize';
 const sequelize = new Sequelize(dbName, user, pwd, {
-    host: 'localhost',
+    host: host,
     dialect: 'postgres'
 });
 
