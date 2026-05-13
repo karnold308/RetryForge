@@ -1,4 +1,4 @@
-const User = import('../model/User');
+import User from '../model/User.js';
 
 
 const handleLogout = async (req, res) => {
@@ -35,4 +35,4 @@ const handleLogout = async (req, res) => {
 }
 
 
-module.exports = { handleLogout }
+export { handleLogout }

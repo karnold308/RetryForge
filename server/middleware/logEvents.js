@@ -1,10 +1,10 @@
 
 
-    const fs = await import('fs');
-    const fsPromises = await import('fs').promises;
-    const path = await import('path');
-    const { format } = await import('date-fns');
-    const { v4: uuid } = await import('uuid');
+    const fs =  import('fs');
+    const fsPromises =  import('fs').promises;
+    const path =  import('path');
+    const { format } =  import('date-fns');
+    const { v4: uuid } =  import('uuid');
 
 
 
@@ -34,4 +34,4 @@ const logger = async (req, res, next) => {
 }
 
 
-module.exports = { logger, logEvents };
+export  { logger, logEvents };

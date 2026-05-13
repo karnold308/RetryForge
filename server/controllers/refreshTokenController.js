@@ -1,5 +1,5 @@
 
-const User = import('../model/User');
+import User from '../model/User.js';
 
 const jwt = import('jsonwebtoken');
 
@@ -36,4 +36,4 @@ const handleRefreshToken = async (req, res) => {
 }
 
 
-module.exports = { handleRefreshToken }
+export  { handleRefreshToken }

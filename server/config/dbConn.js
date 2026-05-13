@@ -1,4 +1,4 @@
-const { Pool } = import('pg');
+import { Pool } from 'pg';
 const user = process.env.DB_USER;
 const pwd = encodeURIComponent(process.env.DB_PWD);
 const host = process.env.DB_HOST;
@@ -55,4 +55,4 @@ const pool = new Pool({
 //     }
 // }
 
-module.exports = { pool } 
+export { pool } 

@@ -1,4 +1,4 @@
-const User = import('../model/User');
+import User from '../model/User.js';
 const bcrypt = import('bcrypt');
 const jwt = import('jsonwebtoken');
 
@@ -49,4 +49,4 @@ const handleLogin = async (req, res) => {
 }
 
 
-module.exports = { handleLogin }
+export { handleLogin }

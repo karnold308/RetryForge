@@ -4,7 +4,7 @@ const host = process.env.DB_HOST;
 const dbName = process.env.DB_NAME;
 const port = process.env.DB_PORT;
 
-const { Sequelize, DataTypes } = import('sequelize')
+import { Sequelize, DataTypes } from 'sequelize';
 const sequelize = new Sequelize(dbName, user, pwd, {
     host: 'localhost',
     dialect: 'postgres'
@@ -60,6 +60,5 @@ const User = sequelize.define('User', {
     tableName: 'USERS',
     timestamps: false
 });
-
-module.exports = User;
+export default User ;
  

@@ -1,4 +1,4 @@
-const { logEvents } = import('./logEvents');
+import { logEvents } from './logEvents.js';
 
 
 const errorHandler = (err, req, res, next) => {
@@ -7,4 +7,4 @@ const errorHandler = (err, req, res, next) => {
     res.status(500).send(err.message);
 }
 
-module.exports = errorHandler;
+export { errorHandler };
