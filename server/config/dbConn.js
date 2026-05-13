@@ -6,7 +6,7 @@ const dbName = process.env.DB_NAME;
 const port = process.env.DB_PORT;
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.retryforge_DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
   },
