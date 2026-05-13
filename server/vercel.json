@@ -1,35 +1,11 @@
 {
     "version": 2,
-    "builds": [
-        {
-            "src": "./index.js",
-            "use": "@vercel/node"
-        }
-    ],
-    "rewrites": [
-        {
-            "src": "/signup",
-            "dest": "/signup"
-        },
-        {
-            "src": "/privacy",
-            "dest": "/privacy"
-        },
-        {
-            "src": "/terms",
-            "dest": "/terms"
-        },
-        {
-            "src": "/demo",
-            "dest": "/demo"
-        },
-        {
-            "src": "/cookies",
-            "dest": "/cookies"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/"
-        }
-    ]
+    "builds": [{
+        "src": "./index.js", 
+        "use": "@vercel/node"
+    }],
+    "routes": [{
+        "src": "/(.*)",
+        "dest": "/"
+    }]
 }
