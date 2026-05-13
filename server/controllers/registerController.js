@@ -8,7 +8,7 @@ const { v4: uuid } = await import('uuid');
 
 
 const handleNewUser = async (req, res) => {
-    console.log("handleNewUser start")
+    console.log("handleNewUser start");
     const { company, pwd, email } = req.body;
     if (!email || !pwd) return res.status(400).json({
         message: 'Email and password are required.',
@@ -19,6 +19,7 @@ const handleNewUser = async (req, res) => {
         }
     });
 
+    console.log("handleNewUser check for dups");
     // check for duplicate usernames in db
     const duplicate = await User.findOne({ where: { email: email } });
 
