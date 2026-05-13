@@ -1,7 +1,7 @@
 
 
 import fs from 'node:fs';
-import { fsPromises } from 'node:fs/promises';
+import fsPromises  from 'node:fs/promises';
 const dir = import.meta.dirname;
 import { format } from 'date-fns';
 const { v4: uuid } = await import('uuid');
