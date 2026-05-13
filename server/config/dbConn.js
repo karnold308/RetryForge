@@ -4,13 +4,25 @@ const pwd = encodeURIComponent(process.env.DB_PWD);
 const host = process.env.DB_HOST;
 const dbName = process.env.DB_NAME;
 const port = process.env.DB_PORT;
+import dotenv from 'dotenv';
 
-const pool = new Pool({
-  connectionString: process.env.retryforge_DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
+
+const connectionString = process.env.NODE_ENV === 'production'
+  ? process.env.retryforge_DATABASE_URL
+  : `postgresql://${user}:${pwd}@${host}:${port}/${dbName}`
+
+const poolConfig = process.env.NODE_ENV === 'production'
+  ? {
+    connectionString: connectionString,
+    ssl: {
+      rejectUnauthorized: false
+    },
+  }
+  : {
+    connectionString: connectionString
+  };
+
+const pool = new Pool(poolConfig);
 
 // pool.connect((err) => {
 //     if (err)throw err
