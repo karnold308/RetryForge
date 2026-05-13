@@ -30,8 +30,9 @@ const logEvents = async (message, logName) => {
 }
 
 const logger = async (req, res, next) => {
-    logEvents(`${req.method}\t${req.headers.origin}\t${req.url}`, 'reqLog.txt');
-    console.log(`${req.method} ${req.path}`);
+    // todo: get an external log provider setup. can store in /tmp/logs on vercel but not persistent for long time
+    // logEvents(`${req.method}\t${req.headers.origin}\t${req.url}`, 'reqLog.txt');
+    console.log(`${req.method}\t${req.headers.origin}\t${req.url}`);
     next();
 }
 
