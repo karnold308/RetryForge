@@ -4,12 +4,19 @@ const pwd = process.env.NODE_ENV === 'production' ? encodeURIComponent(process.e
 const host = process.env.NODE_ENV === 'production' ? process.env.retryforge_PGHOST : process.env.DB_HOST;
 const dbName = process.env.NODE_ENV === 'production' ? process.env.retryforge_PGDATABASE : process.env.DB_NAME;
 const port = process.env.DB_PORT;
-
+    
 
 import { Sequelize, DataTypes } from 'sequelize';
 const sequelize = new Sequelize(dbName, user, pwd, {
     host: host,
-    dialect: 'postgres'
+    dialect: 'postgres',
+    dialectOptions: {
+    ssl: {
+      require: true,
+      // Use false to bypass "self-signed certificate" errors in dev
+      rejectUnauthorized: false 
+    }
+  }
 });
 
 const User = sequelize.define('User', {
