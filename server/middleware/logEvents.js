@@ -16,14 +16,15 @@ const logEvents = async (message, logName) => {
     const logItem = `${dateTime}\t ${uuid()}\t${message}\n`;
     console.log(logItem);
 
-    try {
-        if (!fs.existsSync(path.join(dir, '..', 'logs'))) {
-            await fsPromises.mkdir(path.join(dir, '..', 'logs'))
-        }
-        await fsPromises.appendFile(path.join(dir, '..', 'logs', logName), logItem)
-    } catch (err) {
-        console.log(err);
-    }
+    // todo: get an external log provider setup. can store in /tmp/logs on vercel but not persistent for long time
+    // try {
+    //     if (!fs.existsSync(path.join(dir, '..', 'logs'))) {
+    //         await fsPromises.mkdir(path.join(dir, '..', 'logs'))
+    //     }
+    //     await fsPromises.appendFile(path.join(dir, '..', 'logs', logName), logItem)
+    // } catch (err) {
+    //     console.log(err);
+    // }
     // testing
 
 }
