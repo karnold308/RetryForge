@@ -18,12 +18,13 @@ type FormState = {
 }
 
 async function submitAction(
-    prevState: FormState, 
+    _prevState: FormState, 
     formData: FormData
 ): Promise<FormState> {
     const email = formData.get("email") as string;
     const company = formData.get("company") as string;
     const pwd = formData.get("password") as string;
+    
 
     if (!email) {
         return {loading: false, message: "Email is required", success: false, 

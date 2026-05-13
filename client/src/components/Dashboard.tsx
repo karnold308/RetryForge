@@ -37,41 +37,6 @@ export default function Dashboard() {
         },
     ];
 
-    const stats = [
-        {
-            label: "Recovered Revenue",
-            value: "$18,420",
-            change: "+12.4%",
-        },
-        {
-            label: "Recovery Rate",
-            value: "38%",
-            change: "+4.1%",
-        },
-        {
-            label: "Failed Payments",
-            value: "142",
-            change: "-8%",
-        },
-        {
-            label: "Monthly Recurring Revenue",
-            value: "$52,000",
-            change: "+6.8%",
-        },
-    ];
-
-    const chartData = [
-        { month: "Jan", recovered: 1200 },
-        { month: "Feb", recovered: 1450 },
-        { month: "Mar", recovered: 1800 },
-        { month: "Apr", recovered: 2100 },
-        { month: "May", recovered: 2350 },
-        { month: "Jun", recovered: 2600 },
-        { month: "Jul", recovered: 2950 },
-        { month: "Aug", recovered: 3100 },
-        { month: "Sep", recovered: 2870 },
-    ];
-
     return (
         <div className="dashboard-wrapper bg-[#F8FAFC] min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#F9FAFB] to-[#EEF2FF] text-[#111827] flex items-starttext-[#111827] flex items-start ">
             {/* SIDEBAR */}
