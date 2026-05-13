@@ -1,6 +1,0 @@
-# robots.txt
-User-agent: *
-Allow: /
-
-# Specify your sitemap location
-Sitemap: https://retryforge.com/sitemap.xml
