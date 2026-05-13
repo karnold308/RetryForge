@@ -1,6 +1,6 @@
-
-import('dotenv').config();
-const express = import('express');
+const dotenv = await import('dotenv');
+dotenv.default.config();
+import express from 'express';
 const app = express();
 const path = import('path');
 const cors = import('cors');
@@ -12,13 +12,13 @@ const cookieParser = import('cookie-parser');
 const credentials = import('./middleware/credentials');
 const { pool } = import('./config/dbConn');
 
-
-const dns = import('node:dns');
+import dns from 'node:dns';
 dns.setServers(['8.8.8.8', '8.8.4.4']); 
 
 const PORT = process.env.PORT || 3500;
 
 // connectDB();
+
 
 // custom middleware logger
 app.use(logger);
