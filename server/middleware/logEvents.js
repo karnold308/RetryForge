@@ -2,7 +2,7 @@
 
     const fs = await import('fs');
     const fsPromises = await import('fs').promises;
-    const path = await import('path');
+    import  path  from 'path';
     import { format } from 'date-fns';
     const { v4: uuid } = await import('uuid');
 
