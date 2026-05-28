@@ -1,7 +1,6 @@
-import User  from '../model/User.js';
+import User from '../model/User.js';
 
 
-const fs = await import('fs');
 const bcrypt = await import('bcrypt');
 const { v4: uuid } = await import('uuid');
 
@@ -9,6 +8,8 @@ const { v4: uuid } = await import('uuid');
 
 const handleNewUser = async (req, res) => {
     const { company, pwd, email } = req.body;
+
+    // console.log("handleNewUser start")
     if (!email || !pwd) return res.status(400).json({
         message: 'Email and password are required.',
         data: {
@@ -18,7 +19,7 @@ const handleNewUser = async (req, res) => {
         }
     });
 
-    // check for duplicate usernames in db
+    // check for duplicate emails in db
     const duplicate = await User.findOne({ where: { email: email } });
 
     if (duplicate) return res.sendStatus(409); //conflict
@@ -36,8 +37,8 @@ const handleNewUser = async (req, res) => {
         });
 
         // console.log(newUser);
-        console.log("handleNewUser end")
-        res.status(201).json({ success: true, message: `New user ${email} created` });
+        // console.log("handleNewUser end")
+        res.status(201).json({ success: true, message: `New user: '${email}' created` });
     } catch (err) {
         res.status(500).json({ 'message': err.message });
     }

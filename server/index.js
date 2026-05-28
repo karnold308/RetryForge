@@ -4,20 +4,25 @@ import express from 'express';
 const app = express();
 const path = import('path');
 import cors from 'cors';
-const { errorHandler } = await import('./middleware/errorHandler.js');
-const { logger } = await import('./middleware/logEvents.js');
-const corsOptions = import('./config/corsOptions.js');
-const { credentials } = await import('./middleware/credentials.js');
-import  { pool } from './config/dbConn.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { logger } from './middleware/logEvents.js';
+import { corsOptions } from'./config/corsOptions.js';
+import { credentials } from './middleware/credentials.js';
+import { pool } from './config/dbConn.js';
 import cookieParser from 'cookie-parser';
 import dns from 'node:dns';
-dns.setServers(['8.8.8.8', '8.8.4.4']);
-const { verifyJWT } = await import('./middleware/verifyJWT.js');
 
-import { router as register } from './routes/register.js'
-import { router as auth } from './routes/auth.js'
-import { router as refresh } from './routes/refresh.js'
-import { router as logout } from './routes/logout.js'
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
+
+import { router as register } from './routes/register.js';
+import { router as auth } from './routes/auth.js';
+import { router as connect } from './routes/connect.js';
+import { router as dashboard } from './routes/dashboard.js';
+import { router as stripeAccountRequest } from './routes/api/stripeAccountRequest.js';
+
+
+import { verifyJWT } from './middleware/verifyJWT.js';
 
 const PORT = process.env.PORT || 3500;
 
@@ -49,11 +54,18 @@ app.use(cookieParser());
 // app.use('/', import('./routes/root'));
 app.use('/register', register);
 app.use('/auth', auth);
-app.use('/refresh', refresh);
-app.use('/logout', logout);
+app.use('/connect/callback', connect);
+
+app.use('/api/stripe/connect', stripeAccountRequest);
 
 // dont want JWT on register or auth
 app.use(verifyJWT);
+
+
+app.use('/dashboard', dashboard)
+
+
+
 // app.use('/employees', import('./routes/api/employees'));
 // Regex no longer works like this in Express 5
 // app.get('^/$|/index(.html)?', (req, res) => {
