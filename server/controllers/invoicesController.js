@@ -1,4 +1,4 @@
-import Invoice from '../model/Invoice'
+import Invoice from '../models/Invoice'
 
 import asyncHandler from 'express-async-handler'
 

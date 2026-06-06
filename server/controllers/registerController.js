@@ -1,13 +1,13 @@
-import User from '../model/User.js';
+import User from '../models/User.js'
 
 
-const bcrypt = await import('bcrypt');
-const { v4: uuid } = await import('uuid');
+const bcrypt = await import('bcrypt')
+const { v4: uuid } = await import('uuid')
 
 
 
 const handleNewUser = async (req, res) => {
-    const { company, pwd, email } = req.body;
+    const { company, pwd, email } = req.body
 
     // console.log("handleNewUser start")
     if (!email || !pwd) return res.status(400).json({
@@ -17,16 +17,16 @@ const handleNewUser = async (req, res) => {
             email: email,
             pwd: pwd,
         }
-    });
+    })
 
     // check for duplicate emails in db
-    const duplicate = await User.findOne({ where: { email: email } });
+    const duplicate = await User.findOne({ where: { email: email } })
 
-    if (duplicate) return res.sendStatus(409); //conflict
+    if (duplicate) return res.sendStatus(409) //conflict
 
     try {
         //encrypt password
-        const hashedPwd = await bcrypt.hash(pwd, 10);
+        const hashedPwd = await bcrypt.hash(pwd, 10)
 
         // create and store new user
         const newUser = await User.create({
@@ -34,15 +34,15 @@ const handleNewUser = async (req, res) => {
             'email': email,
             'company': company,
             'password_hash': hashedPwd
-        });
+        })
 
-        // console.log(newUser);
+        // console.log(newUser)
         // console.log("handleNewUser end")
-        res.status(201).json({ success: true, message: `New user: '${email}' created` });
+        res.status(201).json({ success: true, message: `New user: '${email}' created` })
     } catch (err) {
-        res.status(500).json({ 'message': err.message });
+        res.status(500).json({ 'message': err.message })
     }
 }
 
 
-export { handleNewUser };
+export { handleNewUser }

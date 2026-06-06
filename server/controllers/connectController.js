@@ -1,47 +1,79 @@
-import Stripe from 'stripe';
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+import { User, StripeAccount } from '../models/index.js'
+import Stripe from 'stripe'
+import jwt from 'jsonwebtoken'
+import { encrypt } from '../utils/encryption.js'
 
-const { v4: uuid } = await import('uuid');
+const ALGORITHM = 'aes-256-gcm'
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+
+
+const { v4: uuid } = await import('uuid')
+const frontEndUrl = process.env.NODE_ENV === 'production' ?
+    process.env.retryforge_DATABASE_URL : process.env.FRONT_END_URL
 
 const handleNewAccountConnection = async (req, res) => {
-    const acctCode = req.query.code;
+    try {
+        const acctCode = req.query.code
 
-    const frontEndUrl = process.env.NODE_ENV === 'production' ?
-        process.env.retryforge_DATABASE_URL : process.env.FRONT_END_URL;
+        if (!acctCode) {
+            return res.redirect(frontEndUrl)
+
+        }
+
+        const decoded = jwt.verify(
+            req.query.state,
+            process.env.JWT_SECRET
+        )
+
+        const userId = decoded.userId
+
+        if (undefined === acctCode) {
+            res.redirect(frontEndUrl)
+        }
+
+        const tokenResponse = await stripe.oauth.token({
+            grant_type: 'authorization_code',
+            code: `${acctCode}`,
+        })
+
+        const stripeAccountId = await stripe.accounts.retrieve(
+            tokenResponse.stripe_user_id
+        )
+
+        const encryptedAccessToken = encrypt(
+            tokenResponse.access_token
+        )
+
+        const encryptedRefreshToken = encrypt(
+            tokenResponse.refresh_token
+        )
+
+        await StripeAccount.upsert({
+            id: uuid(),
+            user_id: userId,
+            stripe_account_id: tokenResponse.stripe_user_id,
+            access_token_encrypted: encryptedAccessToken,
+            refresh_token_encrypted: encryptedRefreshToken,
+            scope: tokenResponse.scope,
+            connected: Boolean(tokenResponse.stripe_user_id),
+            charges_enabled: stripeAccountId.charges_enabled,
+            details_submitted: stripeAccountId.details_submitted,
+            payouts_enabled: stripeAccountId.payouts_enabled,
+            country: stripeAccountId.country,
+            disconneted_at: null,
+            stripe_email: stripeAccountId.email,
+            account_type: stripeAccountId.type,
+            updated_at: new Date()
+        })
 
 
+        return res.redirect(`${frontEndUrl}/dashboard`)
 
-    console.log("here: " + req.query.code);
-    console.log("sk: " + process.env.STRIPE_SECRET_KEY)
-
-    if (undefined === acctCode) {
-        res.redirect(frontEndUrl);
+    } catch (err) {
+        console.error(err)
+        // TODO: make this front end page
+        return res.redirect(`${frontEndUrl}/connect/error`)
     }
-
-
-    const tokenResponse = await stripe.oauth.token({
-        grant_type: 'authorization_code',
-        code: `${acctCode}`,
-    });
-
-
-    const account = await stripe.accounts.retrieve(
-        tokenResponse.stripe_user_id
-    );
-
-    var connected_account_id = tokenResponse.stripe_user_id;
-
-    console.log("acctid: " + connected_account_id);
-
-    const encryptedAccessToken = encrypt(
-        tokenResponse.access_token
-    );
-
-    const encryptedRefreshToken = encrypt(
-        tokenResponse.refresh_token
-    );
-
-    res.redirect(frontEndUrl + '/dashboard');
 }
 
 
