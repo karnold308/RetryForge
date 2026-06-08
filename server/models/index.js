@@ -75,13 +75,18 @@ StripeAccountCustomers.belongsTo(User, {
 StripeAccount.hasMany(StripeAccountCustomers, {
     foreignKey: 'stripe_account_uuid',
     sourceKey: 'id',
-    as: 'customers'
+    as: 'stripeAccountCustomers'
 })
 
 StripeAccountCustomers.belongsTo(StripeAccount, {
     foreignKey: 'stripe_account_uuid',
     targetKey: 'id',
     as: 'stripeAccount'
+})
+
+RecoveryCases.belongsTo(StripeAccountCustomers, {
+    foreignKey: "stripe_customer_id",
+    targetKey: "stripe_customer_id"
 })
 
 

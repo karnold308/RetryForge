@@ -24,6 +24,18 @@ const WebhookEvents = sequelizeConfig.define('WebhookEvents', {
         type: DataTypes.UUID,
         allowNull: true
     },
+    stripe_invoice_id: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    stripe_customer_id: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    related_recovery_case_id: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     processed: {
         type: DataTypes.BOOLEAN,
         defaultValue: false

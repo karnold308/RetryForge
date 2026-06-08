@@ -19,7 +19,7 @@ import { router as register } from './routes/register.js'
 import { router as auth } from './routes/auth.js'
 import { router as connect } from './routes/api/connect.js'
 import { router as disconnect } from './routes/api/disconnect.js'
-import { router as dashboard } from './routes/dashboard.js'
+import { router as dashboard } from './routes/api/dashboard.js'
 import { router as stripeAccountRequest } from './routes/api/stripeAccountRequest.js'
 import { router as meRoute } from './routes/api/me.js'
 import { router as stripeRefresh } from './routes/api/stripeRefresh.js'
@@ -69,7 +69,7 @@ app.use('/connect/callback', connect)
 app.use(verifyJWT)
 
 app.use('/api/stripe/connect', stripeAccountRequest)
-app.use('/dashboard', dashboard)
+app.use('/api/dashboard', dashboard)
 app.use('/api/me', meRoute)
 app.use('/api/stripe/disconnect', disconnect)
 app.use('/api/stripe/refresh', stripeRefresh)

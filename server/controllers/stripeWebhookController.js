@@ -85,14 +85,20 @@ const handleStripeWebhook = async (req, res) => {
             last_invoice_id: invoice.id
         })
 
-        // update webhook_events with internal stripe account uuid
+        const recoveryCaseId = uuid()
+
+        // update webhook_events with internal stripe account uuid, and other info
         await webhookEvent.update({
-            stripe_account_uuid: stripeAccount.id
+            stripe_account_uuid: stripeAccount.id,
+            stripe_invoice_id: invoice.id,
+            related_recovery_case_id: recoveryCaseId,
+            stripe_customer_id: invoice.customer,
         })
 
         const failureFromCharge = await WebhookEvents.findOne({
             where: {
                 event_type: 'charge.failed',
+                stripe_customer_id: invoice.customer,
                 stripe_account_uuid: stripeAccount.id
             },
             order: [
@@ -100,13 +106,12 @@ const handleStripeWebhook = async (req, res) => {
             ]
         })
 
-
         const [recoveryCase, created] = await RecoveryCases.findOrCreate({
             where: {
                 stripe_invoice_id: invoice.id
             },
             defaults: {
-                id: uuid(),
+                id: recoveryCaseId,
                 user_id: stripeAccount.user_id,
                 stripe_account_uuid: stripeAccount.id,
                 stripe_customer_id: invoice.customer,
@@ -126,6 +131,8 @@ const handleStripeWebhook = async (req, res) => {
                 hosted_invoice_url: invoice.hosted_invoice_url,
             }
         })
+
+
 
         if (created) {
             console.log(
@@ -164,12 +171,14 @@ const handleStripeWebhook = async (req, res) => {
         // use internal stripe account to set webhook_events stripe account uuid
         if (stripeAccount) {
             await webhookEvent.update({
-                stripe_account_uuid: stripeAccount.id
+                stripe_account_uuid: stripeAccount.id,
+                stripe_customer_id: paymentIntent.customer
             })
         } else {
             // else use the id from stripe so there's at least something in the field
             await webhookEvent.update({
-                stripe_account_uuid: stripeAccountId
+                stripe_account_uuid: stripeAccountId,
+                stripe_customer_id: paymentIntent.customer
             })
         }
 
@@ -239,9 +248,10 @@ const handleStripeWebhook = async (req, res) => {
     }
 
     const handleChargeFailed = async (event) => {
-        console.log("event charge failed")
+        console.log("event charge.failed")
         const charge = event.data.object
 
+        
         if (!event.account) {
             console.log("Skipping non-connect event")
             return res.json({ received: true })
@@ -257,9 +267,9 @@ const handleStripeWebhook = async (req, res) => {
             stripe_account_uuid: stripeAccount.id,
             failure_code: charge.failure_code ?? null,
             failure_message: charge.failure_message ?? null,
-            charge_created_at: new Date(charge.created * 1000)
+            charge_created_at: new Date(charge.created * 1000),
+            stripe_customer_id: charge.customer
         })
-
 
         const invoiceId =
             event.data.object.invoice ||
@@ -300,6 +310,9 @@ const handleStripeWebhook = async (req, res) => {
             }
         )
     }
+
+
+
     try {
         event = stripe.webhooks.constructEvent(
             req.body,
