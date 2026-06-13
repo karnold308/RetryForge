@@ -1,7 +1,7 @@
 
 import { RecoveryCases, StripeAccountCustomers, StripeAccount } from '../models/index.js'
 import asyncHandler from 'express-async-handler'
-import { Sequelize } from 'sequelize'
+import { Sequelize, Op, fn, col } from 'sequelize'
 
 
 const getDashboard = asyncHandler(async (req, res) => {
@@ -35,45 +35,36 @@ const getDashboardOverview = asyncHandler(async (req, res) => {
             }
         })
 
-        const recoveredRevenueResult =
-            await RecoveryCases.sum(
-                'amount_due',
-                {
-                    where: {
-                        user_id: userId,
-                        status: 'recovered'
-                    }
+        const recoveredRevenueResult = await RecoveryCases.sum(
+            'amount_due',
+            {
+                where: {
+                    user_id: userId,
+                    status: 'recovered'
                 }
-            )
+            })
 
-        const atRiskCustomers =
-            await RecoveryCases.count({
-                distinct: true,
-                col: 'stripe_customer_id',
+        const atRiskCustomers = await RecoveryCases.count({
+            distinct: true,
+            col: 'stripe_customer_id',
+            where: {
+                user_id: userId,
+                status: 'active'
+            }
+        })
+
+        const revenueAtRisk = await RecoveryCases.sum(
+            'amount_due',
+            {
                 where: {
                     user_id: userId,
                     status: 'active'
                 }
             })
 
-        const revenueAtRisk =
-            await RecoveryCases.sum(
-                'amount_due',
-                {
-                    where: {
-                        user_id: userId,
-                        status: 'active'
-                    }
-                }
-            )
+        const totalCases = failedPayments + recoveredCases
 
-        const totalCases =
-            failedPayments + recoveredCases
-
-        const recoveryRate =
-            totalCases > 0
-                ? ((recoveredCases / totalCases) * 100)
-                : 0
+        const recoveryRate = totalCases > 0 ? ((recoveredCases / totalCases) * 100) : 0
 
         return res.json({
             failedPayments,
@@ -145,111 +136,52 @@ const getDashboardCustomers = asyncHandler(async (req, res) => {
             return res.json([])
         }
 
-        const customers =
-            await StripeAccountCustomers.findAll({
+        const customers = await StripeAccountCustomers.findAll({
+            where: {
+                stripe_account_uuid: stripeAccount.id
+            },
+            order: [
+                ['last_payment_failed_at', 'DESC']
+            ]
+        })
+
+        const rows = await Promise.all(customers.map(async customer => {
+
+            const recoveryCases = await RecoveryCases.findAll({
                 where: {
+                    stripe_customer_id: customer.stripe_customer_id,
                     stripe_account_uuid: stripeAccount.id
-                },
-                order: [
-                    ['last_payment_failed_at', 'DESC']
-                ]
-            })
-
-        const rows = await Promise.all(
-            customers.map(async customer => {
-
-                const recoveryCases =
-                    await RecoveryCases.findAll({
-                        where: {
-                            stripe_customer_id: customer.stripe_customer_id,
-                            stripe_account_uuid: stripeAccount.id
-                        }
-                    })
-
-                const totalAtRisk =
-                    recoveryCases.reduce(
-                        (sum, rc) =>
-                            rc.status === 'active'
-                                ? sum + rc.amount_due
-                                : sum, 0
-                    )
-
-                const recoveredRevenue =
-                    recoveryCases.reduce(
-                        (sum, rc) =>
-                            rc.status === 'recovered'
-                                ? sum + rc.amount_due
-                                : sum, 0
-                    )
-
-                return {
-                    id: customer.id,
-                    stripeCustomerId: customer.stripe_customer_id,
-                    email: customer.email,
-                    name: customer.name,
-                    phone: customer.phone,
-                    activeFailures:
-                        recoveryCases.filter(
-                            r => r.status === 'active'
-                        ).length,
-                    recoveredInvoices:
-                        recoveryCases.filter(
-                            r => r.status === 'recovered'
-                        ).length,
-                    totalAtRisk,
-                    recoveredRevenue,
-                    lastFailedAt:
-                        customer.last_payment_failed_at
                 }
             })
+
+            const totalAtRisk = recoveryCases.reduce(
+                (sum, rc) =>
+                    rc.status === 'active'
+                        ? sum + rc.amount_due
+                        : sum, 0)
+
+            const recoveredRevenue = recoveryCases.reduce(
+                (sum, rc) =>
+                    rc.status === 'recovered'
+                        ? sum + rc.amount_due
+                        : sum, 0)
+
+            return {
+                id: customer.id,
+                stripeCustomerId: customer.stripe_customer_id,
+                email: customer.email,
+                name: customer.name,
+                phone: customer.phone,
+                activeFailures: recoveryCases.filter(r => r.status === 'active').length,
+                recoveredInvoices: recoveryCases.filter(r => r.status === 'recovered').length,
+                totalAtRisk,
+                recoveredRevenue,
+                lastFailedAt: customer.last_payment_failed_at
+            }
+        })
         )
 
         res.json(rows)
-
-
-        // const userId = req.userId
-
-        // const customers = await RecoveryCases.findAll({
-        //     where: {
-        //         user_id: userId
-        //     },
-        //     attributes: [
-        //         'stripe_customer_id',
-        //         [Sequelize.fn('SUM', Sequelize.col('amount_due')), 'total_failed_amount'],
-        //         [Sequelize.fn('MAX', Sequelize.col('failure_message')), 'last_failure_reason'],
-        //         [Sequelize.fn('MAX', Sequelize.col('last_failed_event_at')), 'last_failed_at'],
-        //         [Sequelize.fn('COUNT', Sequelize.col('id')), 'failure_count'],
-        //         [Sequelize.fn('MAX', Sequelize.col('status')), 'status']
-        //     ],
-        //     group: ['stripe_customer_id'],
-        //     raw: true
-        // })
-
-        // const enriched = await Promise.all(
-        //     customers.map(async (c) => {
-        //         const customerInfo = await StripeAccountCustomers.findOne({
-        //             where: {
-        //                 stripe_customer_id: c.stripe_customer_id,
-        //                 user_id: userId
-        //             },
-        //             attributes: ['email', 'name', 'phone']
-        //         })
-
-        //         return {
-        //             stripeCustomerId: c.stripe_customer_id,
-        //             name: customerInfo?.name || customerInfo?.email || c.stripe_customer_id,
-        //             email: customerInfo?.email || null,
-        //             phone: customerInfo?.phone || null,
-        //             totalFailedAmount: Number(c.total_failed_amount || 0),
-        //             lastFailureReason: c.last_failure_reason,
-        //             lastFailedAt: c.last_failed_at,
-        //             failureCount: Number(c.failure_count || 0),
-        //             status: c.status
-        //         }
-        //     })
-        // )
-
-        // return res.json(enriched)
 
     } catch (err) {
         console.error("getCustomers error:", err)
@@ -257,5 +189,156 @@ const getDashboardCustomers = asyncHandler(async (req, res) => {
     }
 })
 
+const getDashboardAnalytics = asyncHandler(async (req, res) => {
+    const userId = req.userId
 
-export { getDashboard, getDashboardOverview, getDashboardRecoveries, getDashboardCustomers }
+    try {
+        const totalFailures = await RecoveryCases.count({
+            where: {
+                user_id: userId
+            }
+        })
+
+        const activeRecoveries = await RecoveryCases.count({
+            where: {
+                user_id: userId,
+                status: 'active'
+            }
+        })
+
+        const recoveredCases = await RecoveryCases.count({
+            where: {
+                user_id: userId,
+                status: 'recovered'
+            }
+        })
+
+        const recoveredRevenue = await RecoveryCases.sum(
+            'amount_due',
+            {
+                where: {
+                    user_id: userId,
+                    status: 'recovered'
+                }
+            })
+
+        const revenueAtRisk = await RecoveryCases.sum(
+            'amount_due',
+            {
+                where: {
+                    user_id: userId,
+                    status: 'active'
+                }
+            })
+
+        const failureReasons = await RecoveryCases.findAll({
+            where: {
+                user_id: userId
+            },
+            attributes: [
+                'failure_code',
+                [
+                    fn('COUNT', col('failure_code')),
+                    'count'
+                ]
+            ],
+            group: ['failure_code'],
+            order: [
+                [fn('COUNT', col('failure_code')), 'DESC']
+            ]
+        })
+
+        const recoveryRate = totalFailures > 0 ? Number(
+            (
+                recoveredCases /
+                totalFailures
+            ) * 100
+        ).toFixed(1)
+            : 0
+
+        return res.json({
+            totalFailures,
+            activeRecoveries,
+            recoveredCases,
+            recoveredRevenue: (recoveredRevenue || 0),
+            revenueAtRisk: (revenueAtRisk || 0),
+            recoveryRate,
+            failureReasons
+        })
+
+    } catch (err) {
+        console.error(err)
+
+        return res
+            .status(500)
+            .json({
+                message:
+                    'Failed to load analytics'
+            })
+    }
+})
+
+
+const getDashboardRecoveryDetail = asyncHandler(async (req, res) => {
+
+
+    try {
+        const recoveryCase =
+            await RecoveryCases.findOne({
+                where: {
+                    id: req.params.id
+                }
+            })
+
+        if (!recoveryCase) {
+            return res.sendStatus(404)
+                .json({
+                    message:
+                        'Cannot find recovery detail for: ' + req.params.id
+                })
+        }
+
+        const customer =
+            await StripeAccountCustomers.findOne({
+                where: {
+                    stripe_customer_id:
+                        recoveryCase.stripe_customer_id,
+                    stripe_account_uuid:
+                        recoveryCase.stripe_account_uuid
+                }
+            })
+
+        return res.json({
+            id: recoveryCase.id,
+            customerName: customer?.name,
+            customerEmail: customer?.email,
+            customerPhone: customer?.phone,
+            amount: recoveryCase.amount_due,
+            status: recoveryCase.status,
+            failureCode: recoveryCase.failure_code,
+            failureMessage: recoveryCase.failure_message,
+            invoiceId: recoveryCase.stripe_invoice_id,
+            subscriptionId: recoveryCase.stripe_subscription_id,
+            attemptCount: recoveryCase.attempt_count,
+            recoveryEmailsSent: recoveryCase.recovery_email_sent_count,
+            invoiceCreatedAt: recoveryCase.invoice_created_at,
+            failedAt: recoveryCase.last_failed_event_at,
+            recoveredAt: recoveryCase.recovered_at,
+            hostedInvoiceUrl: recoveryCase.hosted_invoice_url
+        })
+
+    } catch (err) {
+        console.error(err)
+
+        return res
+            .status(500)
+            .json({
+                message:
+                    'Failed to load recovery detail for: ' + req.params.id
+            })
+    }
+})
+export {
+    getDashboard, getDashboardOverview, getDashboardRecoveries,
+    getDashboardCustomers, getDashboardAnalytics, getDashboardRecoveryDetail
+}

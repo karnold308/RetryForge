@@ -1,7 +1,7 @@
 import sequelizeConfig from '../config/dbConfig.js'
 
 
-import { Sequelize, DataTypes } from 'sequelize'
+import { Sequelize, DataTypes, DatabaseError } from 'sequelize'
 
 
 
@@ -46,7 +46,7 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
         unique: true
     },
     amount_due: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.NUMBER,
         allowNull: false
     },
     currency: {
@@ -63,15 +63,18 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
         allowNull: false,
     },
     recovery_attempt_count: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.NUMBER,
         allowNull: false,
         defaultValue: 0
     },
     hosted_invoice_url: {
         type: DataTypes.STRING
     },
+    amount_recovered: {
+        type: DataTypes.NUMBER
+    },
     attempt_count: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.NUMBER,
         allowNull: false,
     },
     failure_code: {
@@ -84,15 +87,42 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
         type: DataTypes.DATE
     },
     recovery_email_sent_count: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.NUMBER,
         allowNull: false,
         defaultValue: 0
+    },
+    recovery_source: {
+        type: DataTypes.STRING
+    },
+    last_retry_attempt_at: {
+        type: DataTypes.DATE
+    },
+    last_retry_status: {
+        type: DataTypes.STRING
+    },
+    last_recovery_email_sent_at: {
+        type: DataTypes.DATE
     },
     source_event_id: {
         type: DataTypes.STRING,
         allowNull: true
     },
-    last_charge_attempt_at: {
+    stripe_payment_intent_id: {
+        type: DataTypes.STRING
+    },
+    notification_step: {
+        type: DataTypes.STRING
+    },
+    first_notified_at: {
+        type: DataTypes.DATE
+    },
+    last_notified_at: {
+        type: DataTypes.DATE
+    },
+    last_event_created_at: {
+        type: DataTypes.DATE
+    },
+    last_payment_attempt_at: {
         type: DataTypes.DATE
     },
     last_failed_event_at: {

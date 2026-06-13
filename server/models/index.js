@@ -3,6 +3,10 @@ import StripeAccount from './StripeAccount.js'
 import RecoveryCases from './RecoveryCases.js'
 import WebhookEvents from './WebhookEvents.js'
 import StripeAccountCustomers from './StripeAccountCustomers.js'
+import RecoveryActions from './RecoveryActions.js'
+import StripeCustomerSnapshots from './StripeCustomerSnapshots.js'
+import RecoveryCommunications from './RecoveryCommunications.js'
+import RecoveryStrategyStats from './RecoveryStrategyStats.js'
 
 
 
@@ -86,8 +90,68 @@ StripeAccountCustomers.belongsTo(StripeAccount, {
 
 RecoveryCases.belongsTo(StripeAccountCustomers, {
     foreignKey: "stripe_customer_id",
-    targetKey: "stripe_customer_id"
+    targetKey: "stripe_customer_id",
+    as: 'stripeAccountCustomers'
 })
 
 
-export { User, StripeAccount, RecoveryCases, WebhookEvents, StripeAccountCustomers }
+RecoveryCases.hasMany(RecoveryActions, {
+    foreignKey: 'recovery_case_uuid',
+    sourceKey: 'id',
+    as: 'recoveryActions'
+})
+
+RecoveryActions.belongsTo(RecoveryCases, {
+    foreignKey: "recovery_case_uuid",
+    targetKey: "id",
+    as: 'recoveryCases'
+})
+
+
+StripeAccount.hasMany(StripeCustomerSnapshots, {
+    foreignKey: 'stripe_account_uuid',
+    sourceKey: 'id',
+    as: 'stripeCustomerSnapshots'
+})
+
+
+
+StripeCustomerSnapshots.belongsTo(StripeAccount, {
+    foreignKey: "stripe_account_uuid",
+    targetKey: "id",
+    as: 'stripeAccount'
+})
+
+
+RecoveryCases.hasMany(RecoveryCommunications, {
+    foreignKey: 'recovery_case_uuid',
+    sourceKey: 'id',
+    as: 'recoveryCommunications'
+})
+
+RecoveryCommunications.belongsTo(RecoveryCases, {
+    foreignKey: "recovery_case_uuid",
+    targetKey: "id",
+    as: 'recoveryCases'
+})
+
+RecoveryCases.hasMany(RecoveryStrategyStats, {
+    foreignKey: 'recovery_case_uuid',
+    sourceKey: 'id',
+    as: 'recoveryStrategyStats'
+})
+
+RecoveryStrategyStats.belongsTo(RecoveryCases, {
+    foreignKey: "recovery_case_uuid",
+    targetKey: "id",
+    as: 'recoveryCases'
+})
+
+export {
+    User, StripeAccount,
+    RecoveryCases, WebhookEvents,
+    StripeAccountCustomers, RecoveryActions,
+    StripeCustomerSnapshots, RecoveryCommunications,
+    RecoveryStrategyStats
+
+}

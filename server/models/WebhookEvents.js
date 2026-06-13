@@ -58,6 +58,10 @@ const WebhookEvents = sequelizeConfig.define('WebhookEvents', {
     failure_message: {
         type: DataTypes.STRING
     },
+    invoice_stage: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     charge_created_at: {
         type: DataTypes.DATE,
         allowNull: true

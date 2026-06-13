@@ -54,6 +54,17 @@ const StripeAccountCustomers = sequelizeConfig.define('StripeAccountCustomers', 
     last_payment_failed_at: {
         type: DataTypes.DATE
     },
+    last_failure_code: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    last_failure_message: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    created_at_stripe: {
+        type: DataTypes.DATE
+    },
     created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
