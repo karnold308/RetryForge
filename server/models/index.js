@@ -7,7 +7,7 @@ import RecoveryActions from './RecoveryActions.js'
 import StripeCustomerSnapshots from './StripeCustomerSnapshots.js'
 import RecoveryCommunications from './RecoveryCommunications.js'
 import RecoveryStrategyStats from './RecoveryStrategyStats.js'
-
+import CronJobAudit from './CronJobAudit.js'
 
 
 User.hasOne(StripeAccount, {
@@ -88,10 +88,17 @@ StripeAccountCustomers.belongsTo(StripeAccount, {
     as: 'stripeAccount'
 })
 
+
+StripeAccountCustomers.hasMany(RecoveryCases, {
+    foreignKey: 'stripe_customer_id',
+    sourceKey: 'stripe_customer_id',
+    as: 'recoveryCases'
+})
+
 RecoveryCases.belongsTo(StripeAccountCustomers, {
     foreignKey: "stripe_customer_id",
     targetKey: "stripe_customer_id",
-    as: 'stripeAccountCustomers'
+    as: 'stripeAccountCustomer'
 })
 
 
@@ -152,6 +159,7 @@ export {
     RecoveryCases, WebhookEvents,
     StripeAccountCustomers, RecoveryActions,
     StripeCustomerSnapshots, RecoveryCommunications,
-    RecoveryStrategyStats
+    RecoveryStrategyStats, CronJobAudit,
+
 
 }

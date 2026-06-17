@@ -1,11 +1,21 @@
 
 import cron from 'node-cron'
-import { sendRecoveryEmail } from '../services/emailServices.js'
 import { Op } from 'sequelize'
-import { RecoveryCases, StripeAccountCustomers, RecoveryActions, RecoveryCommunications } from '../models/index.js'
+import { sendRecoveryEmail } from '../services/emailServices.js'
 import { retryStripePayment } from './stripeRetryService.js'
 
+import {
+    RecoveryCases, StripeAccountCustomers,
+    RecoveryCommunications, StripeAccount,
+    CronJobAudit
+} from '../models/index.js'
+
 const { v4: uuid } = await import('uuid')
+
+cron.schedule(
+    '*/15 * * * *',
+    recoveryProcessor
+)
 
 const CADENCE_HOURS = {
     1: 0,
@@ -26,21 +36,38 @@ function hoursSince(date) {
 }
 
 export async function recoveryProcessor() {
+    await CronJobAudit.create({
+        id: uuid(),
+        created_at: new Date()
+    })
+
     const activeCases = await RecoveryCases.findAll({
         where: {
-            status: 'active'
+            status: 'active',
+            next_action_at: {
+                [Op.lte]: new Date()
+            }
         }
     })
 
 
     for (const recoveryCase of activeCases) {
-        const score = getRecoveryUrgencyScore(recoveryCase)
-        // const decision = await shouldSendNextEmail(recoveryCase)
-        const decision = getNextStep(score)
+        // todo: use in future
+        // const score = getRecoveryUrgencyScore(recoveryCase)
+        const decision = await shouldSendNextEmail(recoveryCase)
 
-        // if (!decision.shouldSend) continue
-        if (!decision.send) continue
+        // todo: use in future
+        // const decision = getNextStep(score)
 
+        // if (!decision.send) continue
+
+        // if (!decision) continue
+        if (!decision.shouldSend) {
+            await recoveryCase.update({
+                next_action_at: null
+            })
+            continue
+        }
         const customer = await StripeAccountCustomers.findOne({
             where: {
                 stripe_customer_id: recoveryCase.stripe_customer_id,
@@ -50,8 +77,8 @@ export async function recoveryProcessor() {
 
         if (!customer?.email) continue
 
-        // const emailNumber = decision.nextStep
-        const emailNumber = decision.step
+        // const emailNumber = decision.step
+        const emailNumber = decision.nextStep
 
         //1. send email
         const result = await sendRecoveryEmail({
@@ -76,14 +103,24 @@ export async function recoveryProcessor() {
             sent_at: new Date()
         })
 
-        // optional: update case summary (NOT counters)
+        const nextAction = new Date()
+
+        nextAction.setHours(
+            nextAction.getHours() + CADENCE_HOURS[emailNumber + 1]
+        )
+
+        await recoveryCase.update({
+            next_action_at: nextAction
+        })
+
+        // update case summary after email sent
         await recoveryCase.update({
             last_email_step: emailNumber,
             last_contacted_at: new Date()
         })
 
         // 2. stripe action decision
-        const action = RECOVERY_ACTIONS[step]
+        const action = RECOVERY_ACTIONS[emailNumber]
 
         if (action?.stripeRetry) {
 
@@ -92,10 +129,18 @@ export async function recoveryProcessor() {
                 continue
             }
 
+            const stripeAccount = await StripeAccount.findByPk(
+                recoveryCase.stripe_account_uuid
+            )
+
             const result = await retryStripePayment({
-                stripeAccountId: recoveryCase.stripe_account_uuid,
+                stripeAccountId: stripeAccount.stripe_account_id,
                 paymentIntentId: recoveryCase.stripe_payment_intent_id
             })
+
+            await recoveryCase.increment(
+                'retry_count'
+            )
 
             await RecoveryCommunications.create({
                 id: uuid(),
@@ -107,72 +152,18 @@ export async function recoveryProcessor() {
                 sent_at: new Date(),
                 metadata: { error: result.error ?? null }
             })
+
+            // update case summary after charge retry
+            await recoveryCase.update({
+                last_retry_attempt_at: new Date(),
+                last_retry_status: result.success ? 'success' : 'failed'
+            })
         }
     }
 
-    // for (const recoveryCase of activeCases) {
-    //     if (!(await shouldSendNextEmail(recoveryCase))) {
-    //         continue
-    //     }
-
-    //     const customer = await StripeAccountCustomers.findOne({
-    //         where: {
-    //             stripe_customer_id: recoveryCase.stripe_customer_id,
-    //             stripe_account_uuid: recoveryCase.stripe_account_uuid
-    //         }
-    //     })
-
-    //     if (!customer?.email) {
-    //         continue
-    //     }
-
-    //     // const emailNumber = recoveryCase.recovery_email_sent_count + 1
-
-    //     const lastEmail = await RecoveryActions.findOne({
-    //         where: {
-    //             recovery_case_id: recoveryCase.id,
-    //             action_type: 'recovery_email_sent'
-    //         },
-    //         order: [['created_at', 'DESC']]
-    //     })
-
-    //     const emailNumber = lastEmail
-    //         ? lastEmail.details.emailNumber + 1
-    //         : 1
-
-    //     await sendRecoveryEmail({
-    //         to: customer.email,
-    //         hostedInvoiceUrl: recoveryCase.hosted_invoice_url,
-    //         amountDue: recoveryCase.amount_due / 100,
-    //         emailNumber: emailNumber
-    //     })
-
-    //     await recoveryCase.increment(
-    //         'recovery_email_sent_count'
-    //     )
-
-    //     await recoveryCase.update({
-    //         last_recovery_email_sent_at: new Date()
-    //     })
-
-    //     await RecoveryActions.create({
-    //         id: uuid(),
-    //         recovery_case_id: recoveryCase.id,
-    //         action_type: 'recovery_email_sent',
-    //         details: {
-    //             emailNumber: emailNumber,
-    //             recipient: customer.email
-    //         }
-    //     })
-
-    // }
-
 }
 
-cron.schedule(
-    '*/15 * * * *',
-    recoveryProcessor
-)
+
 
 function getRecoveryUrgencyScore(recoveryCase) {
 
@@ -190,7 +181,7 @@ function getRecoveryUrgencyScore(recoveryCase) {
     if (recoveryCase.amount_due > 10000) score += 2
     if (recoveryCase.recovery_email_sent_count === 0) score += 3
 
-    // engagement signals (future)
+    // engagement signals
     if (recoveryCase.last_customer_activity_at) score -= 5
 
     return score
@@ -206,73 +197,93 @@ function getNextStep(score) {
 
 
 // cadence logic
-async function shouldSendEmail(recoveryCase) {
-    // const sent = recoveryCase.recovery_email_sent_count
+// async function shouldSendEmail(recoveryCase) {
+//     // const sent = recoveryCase.recovery_email_sent_count
 
-    const activeCases = await RecoveryCases.findAll({
-        where: { status: 'active' }
-    })
+//     // const activeCases = await RecoveryCases.findAll({
+//     //     where: { status: 'active' }
+//     // })
 
-    // if (sent === 0) {
-    //     return true
-    // }
-
-    // if (!recoveryCase.last_recovery_email_sent_at) {
-    //     return true
-    // }
-
-    // const hours = hoursSince(recoveryCase.last_recovery_email_sent_at)
-
-    if (sent === 1 && hours >= 24) {
-        return true
-    }
-
-    if (sent === 2 && hours >= 72) {
-        return true
-    }
-
-    if (sent === 3 && hours >= 168) {
-        return true
-    }
-
-    if (recoveryCase.recovery_email_sent_count >= 4) {
-        return false
-    }
-
-    return false
-}
-
-
-// async function shouldSendNextEmail(recoveryCase) {
-//     const lastEmail = await RecoveryCommunications.findOne({
-//         where: {
-//             recovery_case_id: recoveryCase.id,
-//             type: 'email',
-//             status: 'sent'
-//         },
-//         order: [['step', 'DESC'], ['sent_at', 'DESC']]
-//     })
-
-//     // No emails sent yet → send step 1
-//     if (!lastEmail) return { shouldSend: true, nextStep: 1 }
-
-//     const nextStep = lastEmail.step + 1
-
-//     // stop condition
-//     if (nextStep > 4) {
-//         return { shouldSend: false }
+//     if (sent === 1 && hours >= 24) {
+//         return true
 //     }
 
-//     const hours = hoursSince(lastEmail.sent_at)
-//     const requiredDelay = CADENCE_HOURS[nextStep]
-
-//     if (hours >= requiredDelay) {
-//         return { shouldSend: true, nextStep }
+//     if (sent === 2 && hours >= 72) {
+//         return true
 //     }
 
-//     return { shouldSend: false }
+//     if (sent === 3 && hours >= 168) {
+//         return true
+//     }
+
+//     if (recoveryCase.recovery_email_sent_count >= 4) {
+//         return false
+//     }
+
+//     return false
 // }
 
+async function shouldSendNextEmail(recoveryCase) {
+    const lastEmail = await RecoveryCommunications.findOne({
+        where: {
+            recovery_case_id: recoveryCase.id,
+            type: 'email',
+            status: 'sent'
+        },
+        order: [['step', 'DESC'], ['sent_at', 'DESC']]
+    })
 
+    // No emails sent yet → send step 1
+    if (!lastEmail) return { shouldSend: true, nextStep: 1 }
+
+    const nextStep = lastEmail.step + 1
+
+    // stop condition
+    if (nextStep > 4) {
+        return { shouldSend: false }
+    }
+
+    const hours = hoursSince(lastEmail.sent_at)
+    const requiredDelay = CADENCE_HOURS[nextStep]
+
+    if (hours >= requiredDelay) {
+        return { shouldSend: true, nextStep }
+    }
+
+    return { shouldSend: false }
+
+
+}
+// function shouldSendNextEmail(recoveryCase) {
+//     const sent = recoveryCase.recovery_email_sent_count
+
+//     if (sent >= 4) {
+//         return false
+//     }
+
+//     if (sent === 0) {
+//         return true
+//     }
+
+//     if (!recoveryCase.last_recovery_email_sent_at) {
+//         return true
+//     }
+
+//     const hours = hoursSince(recoveryCase.last_recovery_email_sent_at)
+
+//     if (sent === 1 && hours >= 24) {
+//         return true
+//     }
+
+//     if (sent === 2 && hours >= 72) {
+//         return true
+//     }
+
+//     if (sent === 3 && hours >= 168) {
+//         return true
+//     }
+
+//     return false
+// }
 
 

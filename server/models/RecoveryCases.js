@@ -37,6 +37,16 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    stripe_customer_uuid: {
+        type: DataTypes.UUID,
+        references: {
+            model: {
+                tableName: 'stripe_account_customers',
+                schema: 'rforge'
+            },
+            key: 'id'
+        }
+    },
     stripe_subscription_id: {
         type: DataTypes.STRING
     },
@@ -94,6 +104,10 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
     recovery_source: {
         type: DataTypes.STRING
     },
+    retry_count: {
+        type: DataTypes.NUMBER,
+        defaultValue: 0
+    },
     last_retry_attempt_at: {
         type: DataTypes.DATE
     },
@@ -112,6 +126,9 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
     },
     notification_step: {
         type: DataTypes.STRING
+    },
+    next_action_at: {
+        type: DataTypes.DATE
     },
     first_notified_at: {
         type: DataTypes.DATE

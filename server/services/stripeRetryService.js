@@ -12,13 +12,23 @@ export const retryStripePayment = async ({
     })
 
     try {
-        const intent = await stripe.paymentIntents.confirm(paymentIntentId, {
-            off_session: true
-        })
+        // const intent = await stripe.paymentIntents.confirm(paymentIntentId, {
+        //     off_session: true
+        // })
+
+        const invoice = await stripe.invoices.pay(
+            paymentIntentId, undefined,
+            {
+                stripeAccount: stripeAccountId
+            }
+        )
+
+        console.log('invoice 1: ' + invoice)
 
         return {
             success: true,
-            intent
+            // intent
+            invoice
         }
 
     } catch (err) {

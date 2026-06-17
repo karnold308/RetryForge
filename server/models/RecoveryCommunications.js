@@ -2,7 +2,7 @@
 import sequelizeConfig from '../config/dbConfig.js'
 
 
-import { Sequelize, DataTypes, STRING } from 'sequelize'
+import { Sequelize, DataTypes, STRING, JSONB } from 'sequelize'
 
 
 
@@ -38,8 +38,20 @@ const RecoveryCommunications = sequelizeConfig.define('RecoveryCommunications', 
     provider_id: {
         type: DataTypes.STRING
     },
+    provider_payload: {
+        type: DataTypes.JSONB
+    },
     sent_at: {
         type: DataTypes.DATE
+    },
+    opened_at: {
+        type: DataTypes.DATE
+    },
+    clicked_at: {
+        type: DataTypes.DATE
+    },
+    metadata: {
+        type: JSONB
     },
     created_at: {
         type: DataTypes.DATE,
@@ -48,7 +60,7 @@ const RecoveryCommunications = sequelizeConfig.define('RecoveryCommunications', 
 
 }, {
     schema: 'rforge',
-    tableName: 'recovery_Communications',
+    tableName: 'recovery_communications',
     timestamps: false
 })
 

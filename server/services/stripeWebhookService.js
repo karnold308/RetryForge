@@ -288,25 +288,52 @@ const handleInvoicePaid = async (event, ctx) => {
         }
     })
 
-    const recentRetry = await RecoveryCommunications.findOne({
-        where: {
-            recovery_case_id: recoveryCase.id,
-            type: 'stripe_retry',
-            created_at: {
-                [Op.gte]: new Date(Date.now() - 1000 * 60 * 60 * 24) // last 24h
-            }
-        },
-        order: [['created_at', 'DESC']]
-    })
+    // const recentRetry = await RecoveryCommunications.findOne({
+    //     where: {
+    //         recovery_case_id: recoveryCase.id,
+    //         type: 'stripe_retry',
+    //         created_at: {
+    //             [Op.gte]: new Date(Date.now() - 1000 * 60 * 60 * 24) // last 24h
+    //         }
+    //     },
+    //     order: [['created_at', 'DESC']]
+    // })
 
-    let source 
+    const retryWindowHours = 6
+
+    if (!recoveryCase) return
+
+    const recentRetry =
+        recoveryCase.last_retry_attempt_at &&
+        (
+            Date.now() -
+            new Date(
+                recoveryCase.last_retry_attempt_at
+            ).getTime()
+        ) < retryWindowHours * 60 * 60 * 1000
+
+    let source = 'unknown'
 
 
     // todo: use this eventually:
     // recovery_source: 'retryforge' | 'stripe_smart_retry' | 'manual' | 'unknown'
 
-    if (recentRetry) {
-        source = 'retryforge'
+    // if (recentRetry) {
+    //     source = 'retryforge'
+    // } else {
+    //     source = 'stripe_smart_retry'
+    // }
+
+    console.log('about to check source')
+    if (recentRetry && recoveryCase.last_retry_status === 'success') {
+        if (null !== recoveryCase.recovery_source) {
+            console.log('source not empty, using it')
+            source = recoveryCase.recovery_source
+        } else {
+            console.log('source mty, setting to rf auto')
+            source = 'retryforge_auto'
+        }
+
     } else {
         source = 'stripe_smart_retry'
     }
@@ -333,7 +360,7 @@ const handleInvoicePaid = async (event, ctx) => {
         }
     )
 
-    const speed = (Date.now() - new Date(recoveryCase.created_at).getTime()) / (1000 * 60 * 60)
+    const speed = (Date.now() - new Date(recoveryCase?.created_at).getTime()) / (1000 * 60 * 60)
 
     await RecoveryStrategyStats.create({
         id: uuid(),
@@ -399,8 +426,8 @@ const handleInvoicePaymentFailed = async (event, ctx) => {
     if (customerRecord) {
         await customerRecord.update({
             email: custEmail,
-            name: custName,
-            phone: custPhone,
+            name: null === customerRecord.name ? custName : null,
+            phone: null === customerRecord.phone ? custPhone : null,
             last_payment_failed_at: new Date(event.created * 1000),
             last_invoice_id: invoice.id
         })
@@ -443,6 +470,7 @@ const handleInvoicePaymentFailed = async (event, ctx) => {
             user_id: stripeAccount.user_id,
             stripe_account_uuid: stripeAccountUuid,
             stripe_customer_id: invoice.customer,
+            stripe_customer_uuid: customerRecord.id,
             stripe_subscription_id: subscriptionId,
             stripe_invoice_id: invoice.id,
             amount_due: invoice.amount_due,
@@ -450,8 +478,9 @@ const handleInvoicePaymentFailed = async (event, ctx) => {
             stripe_payment_intent_id: invoice.payment_intent,
             attempt_count: invoice.attempt_count,
             failure_code: customerRecord?.last_failure_code ?? null,
-            failure_message: customerRecord?.last_failure_code ?? null,
+            failure_message: customerRecord?.last_failure_message ?? null,
             source_event_id: event.id,
+            next_action_at: new Date(),
             status: 'active',
             last_failed_event_at: eventTime,
             last_payment_attempt_at: eventTime,
@@ -528,7 +557,8 @@ const handleInvoiceFinalized = async (event, ctx) => {
     const {
         stripeAccount,
         stripeAccountUuid,
-        userId
+        userId,
+        customerRecord
     } = await resolveStripeContext(event, invoice.customer, ctx)
 
     const subscriptionId =
@@ -545,24 +575,25 @@ const handleInvoiceFinalized = async (event, ctx) => {
 
     if (!stripeAccount) return
 
-    await RecoveryCases.findOrCreate({
-        where: { stripe_invoice_id: invoice.id },
-        defaults: {
-            id: uuid(),
-            user_id: stripeAccount.user_id,
-            stripe_account_uuid: stripeAccountUuid,
-            stripe_customer_id: invoice.customer,
-            stripe_subscription_id: subscriptionId,
-            stripe_invoice_id: invoice.id,
-            attempt_count: invoice.attempt_count,
-            amount_due: invoice.amount_due,
-            currency: invoice.currency,
-            status: 'active',
-            invoice_created_at: new Date(invoice.created * 1000),
-            last_failed_event_at: null,
-            last_payment_attempt_at: null
-        }
-    })
+    // await RecoveryCases.findOrCreate({
+    //     where: { stripe_invoice_id: invoice.id },
+    //     defaults: {
+    //         id: uuid(),
+    //         user_id: stripeAccount.user_id,
+    //         stripe_account_uuid: stripeAccountUuid,
+    //         stripe_customer_id: invoice.customer,
+    //         stripe_customer_uuid: customerRecord.id,
+    //         stripe_subscription_id: subscriptionId,
+    //         stripe_invoice_id: invoice.id,
+    //         attempt_count: invoice.attempt_count,
+    //         amount_due: invoice.amount_due,
+    //         currency: invoice.currency,
+    //         status: 'active',
+    //         invoice_created_at: new Date(invoice.created * 1000),
+    //         last_failed_event_at: null,
+    //         last_payment_attempt_at: null
+    //     }
+    // })
 }
 
 const hanldeCustomerUpdated = async (event, ctx) => {
@@ -580,6 +611,14 @@ const hanldeCustomerUpdated = async (event, ctx) => {
     )
 
     if (!customerRecord) return
+
+    await customerRecord.update({
+        email: customer.email ?? null,
+        name: customer.name ?? null,
+        phone: customer.phone ?? null,
+        metadata: customer.metadata ?? null,
+        updated_at: new Date()
+    })
 
     await StripeCustomerSnapshots.create({
         id: uuid(),
@@ -620,9 +659,9 @@ const handleCustomerCreated = async (event, ctx) => {
 
     await customerRecord.update({
         created_at_stripe: new Date(customer.created * 1000),
-        email: customer.email,
-        name: customer.name,
-        phone: customer.phone
+        email: customer.email ?? null,
+        name: customer.name ?? null,
+        phone: customer.phone ?? null
     })
 
     await StripeCustomerSnapshots.create({

@@ -69,6 +69,8 @@ const handleStripeWebhook = async (req, res) => {
 
     const ctx = StripeWebhookService.createCtx(webhookEvent)
 
+    console.log('event type: ' + event.type)
+
     try {
         switch (event.type) {
             case "invoice.payment_failed":

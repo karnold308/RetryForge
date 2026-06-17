@@ -1,10 +1,15 @@
+import { verifyJWT } from '../../middleware/verifyJWT.js'
 import express from 'express'
 const router = express.Router();
 import {
     getDashboardOverview, getDashboardRecoveries, getDashboardCustomers,
-    getDashboardAnalytics, getDashboardRecoveryDetail
+    getDashboardAnalytics, getDashboardRecoveryDetail,
+    getRecoveryCaseTimeline, getDashboardRecentRecoveries,
+    getDashboardSystemStatus, getDashboardAtRiskCustomers,
+    getTopOpportunities, retryRecoveryNow
+
 } from '../../controllers/dashboardController.js'
-import { verifyJWT } from '../../middleware/verifyJWT.js'
+
 
 // import { sendRecoveryEmail } from '../../services/emailServices.js'
 
@@ -23,14 +28,34 @@ router.route('/overview')
 router.route('/recoveries')
     .get(getDashboardRecoveries)
 
+router.route('/recoveries/:id')
+    .get(getDashboardRecoveryDetail)
+
+router.route('/recoveries/:id/retry')
+    .post(retryRecoveryNow)
+
+router.route('/recentrecoveries')
+    .get(getDashboardRecentRecoveries)
+
 router.route('/customers')
     .get(getDashboardCustomers)
+
+router.route('/customers/at-risk')
+    .get(getDashboardAtRiskCustomers)
 
 router.route('/analytics')
     .get(getDashboardAnalytics)
 
-router.route('/recoveries/:id')
-    .get(getDashboardRecoveryDetail)
+router.route('/recover-case/:id/timeline')
+    .get(getRecoveryCaseTimeline)
+
+router.route('/systemstatus')
+    .get(getDashboardSystemStatus)
+
+router.route('/customers/topopportunities')
+    .get(getTopOpportunities)
+
+
 
 // router.post('/test-recovery-email', async (req, res) => {
 //     console.log('here')
