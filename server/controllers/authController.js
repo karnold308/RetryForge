@@ -20,6 +20,15 @@ const handleLogin = asyncHandler(async (req, res) => {
     const match = await bcrypt.compare(pwd, foundUser.password_hash)
 
     if (match) {
+        if (!foundUser.email_verified) {
+            return res.status(403).json({
+                success: false,
+                code: "EMAIL_NOT_VERIFIED",
+                message:
+                    "Please verify your email before signing in."
+            })
+        }
+
         const roles = Object.values(foundUser.roles).filter(Boolean)
 
         // create JWTs, access and refresh 
@@ -117,7 +126,7 @@ const handleLogout = async (req, res) => {
     // delete refresh token in db
     foundUser.refresh_token = ''
     const result = await foundUser.save()
-    console.log(result)
+    // console.log(result)
 
     res.clearCookie('jwt', {
         httpOnly: true,

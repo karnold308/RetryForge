@@ -4,12 +4,14 @@ import Stripe from 'stripe'
 
 export const retryStripePayment = async ({
     stripeAccountId,
-    paymentIntentId
+    invoiceId
 }) => {
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
         stripeAccount: stripeAccountId
     })
+
+    // console.log('start retryStripePayment')
 
     try {
         // const intent = await stripe.paymentIntents.confirm(paymentIntentId, {
@@ -17,13 +19,13 @@ export const retryStripePayment = async ({
         // })
 
         const invoice = await stripe.invoices.pay(
-            paymentIntentId, undefined,
+            invoiceId, undefined,
             {
                 stripeAccount: stripeAccountId
             }
         )
 
-        console.log('invoice 1: ' + invoice)
+        // console.log('invoice 1: ' + invoice)
 
         return {
             success: true,

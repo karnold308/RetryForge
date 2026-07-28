@@ -61,6 +61,27 @@ const StripeAccount = sequelizeConfig.define('StripeAccount', {
     country: {
         type: DataTypes.STRING
     },
+    history_sync_status: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: 'pending'
+    },
+    history_sync_started_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    history_sync_completed_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    history_sync_error: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    initial_sync_complete: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
     disconnected_at: {
         type: DataTypes.DATE,
         allowNull: true

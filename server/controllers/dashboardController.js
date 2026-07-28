@@ -150,7 +150,6 @@ const getDashboardOverview = asyncHandler(async (req, res) => {
 
 
 const getDashboardRecoveries = asyncHandler(async (req, res) => {
-    console.log('start getrecoveries')
     try {
         const userId = req.userId
 
@@ -229,13 +228,13 @@ const getDashboardCustomers = asyncHandler(async (req, res) => {
             const totalAtRisk = recoveryCases.reduce(
                 (sum, rc) =>
                     rc.status === 'active'
-                        ? sum + rc.amount_due
+                        ? sum + Number(rc.amount_due)
                         : sum, 0)
 
             const recoveredRevenue = recoveryCases.reduce(
                 (sum, rc) =>
                     rc.status === 'recovered'
-                        ? sum + rc.amount_due
+                        ? sum + Number(rc.amount_due)
                         : sum, 0)
 
             return {
@@ -510,10 +509,10 @@ const getDashboardSystemStatus = asyncHandler(async (req, res) => {
             order: [["created_at", "DESC"]]
         })
 
-        const schedulerHealthy = false
+        let schedulerHealthy = false
         if (scheduler) {
             const hourInMilliseconds = 60 * 60 * 1000
-            const difference = Date.now() - scheduler.getTime()
+            const difference = Date.now() - scheduler.created_at
 
             schedulerHealthy = difference >= 0 && difference <= hourInMilliseconds
         }
@@ -639,6 +638,7 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
 
         await recoveryCase.update({
             last_retry_attempt_at: new Date(),
+            last_payment_attempt_at: new Date()
         })
 
         // OPTION 1: retry invoice payment
@@ -668,7 +668,7 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
 
         const result = await retryStripePayment({
             stripeAccountId: stripeAccount.stripe_account_id,
-            paymentIntentId: recoveryCase.stripe_invoice_id
+            invoiceId: recoveryCase.stripe_invoice_id
         })
 
         const invoice = await stripe.invoices.retrieve(recoveryCase.stripe_invoice_id, undefined, {
@@ -681,14 +681,35 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
 
         const paymentStatus = paymentIntent?.status
 
-        await recoveryCase.increment('retry_count')
-        console.log('about to set to rf manual')
-        await recoveryCase.update({
-            last_retry_attempt_at: new Date(),
-            last_retry_status: result.success ? 'success' : 'failed',
-            recovery_source: 'retryforge_manual'
+        await recoveryCase.increment({
+            retry_count: 1,
+            attempt_count: 1,
+            recovery_attempt_count: 1
         })
-        console.log('done setting to rf manual')
+
+        if (result.success) {
+            await recoveryCase.update({
+                last_retry_status: 'success',
+                recovery_source: 'retryforge_manual'
+            })
+        } else {
+            const retryDelay = getRetryDelay(recoveryCase.recovery_attempt_count)
+
+            // let stripeNextPaymentAt = recoveryCase?.stripe_next_payment_at
+
+            // if (stripeNextPaymentAt) {
+            //     stripeNextPaymentAt = new Date(stripeNextPaymentAt)
+            // } else {
+            //     stripeNextPaymentAt = new Date()
+            // }
+
+            await recoveryCase.update({
+                last_retry_status: 'failed',
+                last_failed_event_at: new Date(),
+                last_failure_at: new Date(),
+                next_action_at: retryDelay
+            })
+        }
 
         await RecoveryCommunications.create({
             id: uuid(),
@@ -725,6 +746,32 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
         })
     }
 })
+
+
+function getRetryDelay(recoveryAttemtCount) {
+    let delay = new Date()
+
+    switch (recoveryAttemtCount) {
+        case 1:
+            delay.setHours(delay.getHours() + 1)
+            break
+        case 2:
+            delay.setHours(delay.getHours() + 24)
+            break
+        case 3:
+            delay.setDate(delay.getDate() + 3)
+            break
+        case 4:
+            delay.setDate(delay.getDate() + 7)
+            break
+        default:
+            delay = null
+            break
+
+    }
+
+    return delay
+}
 
 
 export {

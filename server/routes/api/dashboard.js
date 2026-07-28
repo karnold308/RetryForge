@@ -13,7 +13,7 @@ import {
 
 // import { sendRecoveryEmail } from '../../services/emailServices.js'
 
-// import { recoveryProcessor } from '../../jobs/recoveryProcessor.js'
+
 
 router.use(verifyJWT)
 
@@ -57,8 +57,9 @@ router.route('/customers/topopportunities')
 
 
 
+// import { recoveryProcessor } from '../../jobs/recoveryProcessor.js'
+// // this is for testing only 
 // router.post('/test-recovery-email', async (req, res) => {
-//     console.log('here')
 //     await recoveryProcessor()
 
 //     res.json({

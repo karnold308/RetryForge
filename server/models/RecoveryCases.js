@@ -73,7 +73,7 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
         allowNull: false,
     },
     recovery_attempt_count: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0
     },
@@ -84,7 +84,7 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
         type: DataTypes.NUMBER
     },
     attempt_count: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.INTEGER,
         allowNull: false,
     },
     failure_code: {
@@ -92,6 +92,21 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
     },
     failure_message: {
         type: DataTypes.STRING
+    },
+    decline_code: {
+        type: DataTypes.STRING
+    },
+    payment_method_type: {
+        type: DataTypes.STRING
+    },
+    network_decline_code: {
+        type: DataTypes.STRING
+    },
+    last_failure_at: {
+        type: DataTypes.DATE
+    },
+    stripe_next_payment_at: {
+        type: DataTypes.DATE
     },
     recovered_at: {
         type: DataTypes.DATE
@@ -105,7 +120,7 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
         type: DataTypes.STRING
     },
     retry_count: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.INTEGER,
         defaultValue: 0
     },
     last_retry_attempt_at: {
@@ -124,8 +139,8 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
     stripe_payment_intent_id: {
         type: DataTypes.STRING
     },
-    notification_step: {
-        type: DataTypes.STRING
+    workflow_step: {
+        type: DataTypes.INTEGER
     },
     next_action_at: {
         type: DataTypes.DATE
@@ -143,6 +158,9 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
         type: DataTypes.DATE
     },
     last_failed_event_at: {
+        type: DataTypes.DATE
+    },
+    history_imported_at: {
         type: DataTypes.DATE
     },
     created_at: {

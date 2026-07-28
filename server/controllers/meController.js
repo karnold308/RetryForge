@@ -42,6 +42,11 @@ const getMe = async (req, res) => {
                 payoutsEnabled: user.stripeAccount?.payments_enabled ?? false,
                 country: user.stripeAccount?.country ?? '',
                 stripeEmail: user.stripeAccount?.stripe_email ?? '',
+                historySyncStatus: user.stripeAccount?.history_sync_status ?? '',
+                historySyncStartedAt: user.stripeAccount?.history_sync_started_at ?? null,
+                historySyncCompletedAt: user.stripeAccount?.history_sync_completed_at ?? null,
+                historySyncError: user.stripeAccount?.history_sync_error ?? '',
+                initialSyncComplete: user.stripeAccount?.initialSyncComplete ?? false
             }
         });
 
@@ -54,4 +59,12 @@ const getMe = async (req, res) => {
     }
 }
 
-export { getMe }
+const handleChangePassword = async (req, res) => {
+    const userId = req.userId
+
+    const user = await User.findByPk(userId)
+
+    
+}
+
+export { getMe, handleChangePassword }

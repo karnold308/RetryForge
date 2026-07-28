@@ -52,13 +52,31 @@ const WebhookEvents = sequelizeConfig.define('WebhookEvents', {
         type: DataTypes.DATE,
         allowNull: true
     },
+    invoice_stage: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     failure_code: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
+        allowNull: true
     },
     failure_message: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
+        allowNull: true
     },
-    invoice_stage: {
+    decline_code: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    payment_method_type: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    network_decline_code: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    stripe_payment_intent_id: {
         type: DataTypes.STRING,
         allowNull: true
     },

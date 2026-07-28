@@ -1,4 +1,6 @@
 import User from '../models/User.js'
+import crypto from 'crypto'
+import { sendRecoveryEmail, sendEmailVerification } from '../services/emailServices.js'
 
 
 const bcrypt = await import('bcrypt')
@@ -25,24 +27,42 @@ const handleNewUser = async (req, res) => {
     if (duplicate) return res.sendStatus(409) //conflict
 
     try {
+        const token = crypto.randomBytes(32).toString("hex")
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex")
         //encrypt password
         const hashedPwd = await bcrypt.hash(pwd, 10)
 
+        // send verification email
+        // handleSendVerificationEmail(email, process.env.BACKEND_URL, tokenHash)
+        sendEmailVerification({
+            to: email,
+            verifyEmailUrl: `${process.env.BACKEND_URL}/verify-email?token=${token}`
+        })
+
         // create and store new user
         const newUser = await User.create({
-            'id': uuid(),
-            'email': email,
-            'company': company,
-            'password_hash': hashedPwd
+            id: uuid(),
+            email: email,
+            company: company,
+            password_hash: hashedPwd,
+            email_verification_token: tokenHash,
+            email_verification_expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
         })
 
         // console.log(newUser)
         // console.log("handleNewUser end")
-        res.status(201).json({ success: true, message: `New user: '${email}' created` })
+        res.status(201).json({ success: true, message: `New user: '${email}' created. Please check your email.` })
     } catch (err) {
         res.status(500).json({ 'message': err.message })
     }
 }
+
+// function handleSendVerificationEmail(to, backendUrlHost, tokenHash) {
+//     const result = sendEmailVerification({
+//         to,
+//         verifyEmailUrl: `${backendUrlHost}/verify-email?token=${tokenHash}`
+//     })
+// }
 
 
 export { handleNewUser }

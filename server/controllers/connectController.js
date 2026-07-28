@@ -5,11 +5,11 @@ import { encrypt } from '../utils/encryption.js'
 
 const ALGORITHM = 'aes-256-gcm'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-
-
 const { v4: uuid } = await import('uuid')
 const frontEndUrl = process.env.NODE_ENV === 'production' ?
     process.env.retryforge_DATABASE_URL : process.env.FRONT_END_URL
+
+import { HistorySyncService } from '../services/historySyncService.js'
 
 const handleNewAccountConnection = async (req, res) => {
     try {
@@ -48,22 +48,54 @@ const handleNewAccountConnection = async (req, res) => {
             tokenResponse.refresh_token
         )
 
-        await StripeAccount.upsert({
-            id: uuid(),
-            user_id: userId,
-            stripe_account_id: tokenResponse.stripe_user_id,
-            access_token_encrypted: encryptedAccessToken,
-            refresh_token_encrypted: encryptedRefreshToken,
-            scope: tokenResponse.scope,
-            connected: Boolean(tokenResponse.stripe_user_id),
-            charges_enabled: stripeAccountId.charges_enabled,
-            details_submitted: stripeAccountId.details_submitted,
-            payouts_enabled: stripeAccountId.payouts_enabled,
-            country: stripeAccountId.country,
-            disconneted_at: null,
-            stripe_email: stripeAccountId.email,
-            account_type: stripeAccountId.type,
-            updated_at: new Date()
+        let stripeAccount = await StripeAccount.findOne({
+            where: {
+                stripe_account_id: tokenResponse.stripe_user_id
+            }
+        })
+
+        if (stripeAccount) {
+            await stripeAccount.update({
+                stripe_account_id: tokenResponse.stripe_user_id,
+                access_token_encrypted: encryptedAccessToken,
+                refresh_token_encrypted: encryptedRefreshToken,
+                scope: tokenResponse.scope,
+                connected: Boolean(tokenResponse.stripe_user_id),
+                charges_enabled: stripeAccountId.charges_enabled,
+                details_submitted: stripeAccountId.details_submitted,
+                payouts_enabled: stripeAccountId.payouts_enabled,
+                country: stripeAccountId.country,
+                disconneted_at: null,
+                history_sync_status: 'queued',
+                stripe_email: stripeAccountId.email,
+                account_type: stripeAccountId.type,
+                updated_at: new Date()
+            })
+        } else {
+            stripeAccount = await StripeAccount.create({
+                id: uuid(),
+                user_id: userId,
+                stripe_account_id: tokenResponse.stripe_user_id,
+                access_token_encrypted: encryptedAccessToken,
+                refresh_token_encrypted: encryptedRefreshToken,
+                scope: tokenResponse.scope,
+                connected: Boolean(tokenResponse.stripe_user_id),
+                charges_enabled: stripeAccountId.charges_enabled,
+                details_submitted: stripeAccountId.details_submitted,
+                payouts_enabled: stripeAccountId.payouts_enabled,
+                country: stripeAccountId.country,
+                disconneted_at: null,
+                history_sync_status: 'queued',
+                stripe_email: stripeAccountId.email,
+                account_type: stripeAccountId.type,
+                updated_at: new Date()
+            })
+        }
+
+        HistorySyncService.importFailedInvoices({
+            stripeAccount
+        }).catch(err => {
+            console.error("Background sync failed", err)
         })
 
 
@@ -75,6 +107,7 @@ const handleNewAccountConnection = async (req, res) => {
         return res.redirect(`${frontEndUrl}/connect/error`)
     }
 }
+
 
 
 export { handleNewAccountConnection }

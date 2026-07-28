@@ -49,17 +49,25 @@ const StripeAccountCustomers = sequelizeConfig.define('StripeAccountCustomers', 
         }
     },
     last_invoice_id: {
-        type: DataTypes.STRING
-    },
-    last_payment_failed_at: {
-        type: DataTypes.DATE
-    },
-    last_failure_code: {
         type: DataTypes.STRING,
         allowNull: true
     },
-    last_failure_message: {
-        type: DataTypes.STRING,
+    last_payment_failed_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    total_failed_payments: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        default: 0
+    },
+    total_recovered_revenue: {
+        type: DataTypes.NUMBER,
+        allowNull: true,
+        default: 0
+    },
+    metadata: {
+        type: DataTypes.JSONB,
         allowNull: true
     },
     created_at_stripe: {

@@ -4,10 +4,14 @@ import {
     StripeCustomerSnapshots, RecoveryCommunications,
     RecoveryStrategyStats
 }
-    from "../models/index.js"
+    from '../models/index.js'
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 import Stripe from 'stripe'
 import { Op } from 'sequelize'
+import { RecoveryCaseService } from '../services/recoveryCaseService.js'
+import { CustomerSyncService } from './customerSyncService.js'
 const { v4: uuid } = await import('uuid')
+
 
 
 const createCtx = (webhookEvent) => ({
@@ -24,10 +28,10 @@ const createCtx = (webhookEvent) => ({
 })
 
 
-const ensureStripeCustomer = async (stripeCustomerId, stripeAccountId = null, userId = null) => {
+const ensureStripeCustomer = async (stripeCustomerId, stripeAccountId = null, userId = null, event) => {
     if (!stripeCustomerId) return null
 
-    const [customer] = await StripeAccountCustomers.findOrCreate({
+    const [customer, created] = await StripeAccountCustomers.findOrCreate({
         where: {
             stripe_customer_id: stripeCustomerId
         },
@@ -37,6 +41,15 @@ const ensureStripeCustomer = async (stripeCustomerId, stripeAccountId = null, us
             ...(userId ? { user_id: userId } : {})
         }
     })
+
+    let customerAction
+
+    if (created) {
+        customerAction = 'customer.created'
+    } else {
+        customerAction = 'customer.updated'
+    }
+
 
 
     // if we learn account later, backfill it
@@ -75,7 +88,8 @@ const resolveStripeContext = async (event, customerId, ctx) => {
         ? await ensureStripeCustomer(
             customerId,
             stripeAccount?.id,
-            stripeAccount?.user_id
+            stripeAccount?.user_id,
+            event
         )
         : null
 
@@ -124,6 +138,16 @@ const handlePaymentIntentPaymentFailed = async (event, ctx) => {
         paymentIntent.latest_charge?.invoice ||
         paymentIntent.metadata?.invoice_id ||
         null
+
+
+    await ctx.safeUpdateWebhook({
+        failure_code: paymentIntent?.last_payment_error?.code,
+        failure_message: paymentIntent?.last_payment_error?.message,
+        decline_code: paymentIntent?.last_payment_error?.decline_code,
+        payment_method_type: paymentIntent?.last_payment_error?.payment_method_type,
+        network_decline_code: paymentIntent?.last_payment_error?.network_decline_code,
+        stripe_payment_intent_id: paymentIntent?.id
+    })
 
     if (!invoiceId) {
         console.log({
@@ -187,7 +211,8 @@ const handleChargeFailed = async (event, ctx) => {
 
     const {
         stripeAccount,
-        stripeAccountUuid
+        stripeAccountUuid,
+        customerRecord
     } = await resolveStripeContext(event, charge.customer, ctx)
 
 
@@ -199,15 +224,20 @@ const handleChargeFailed = async (event, ctx) => {
 
 
 
-    const customerRecord = await ensureStripeCustomer(charge.customer,
-        stripeAccount?.id,
-        stripeAccount?.user_id)
+    // const customerRecord = await ensureStripeCustomer(charge.customer,
+    //     stripeAccount?.id,
+    //     stripeAccount?.user_id,
+    //     event
+    // )
 
     await customerRecord.update({
         stripe_account_uuid: stripeAccountUuid,
-        last_failure_code: charge.failure_code,
-        last_failure_message: charge.failure_message,
         last_payment_failed_at: new Date(charge.created * 1000)
+    })
+
+    await ctx.safeUpdateWebhook({
+        failure_code: charge?.failure_code,
+        failure_message: charge?.failure_message,
     })
 
 
@@ -223,8 +253,6 @@ const handleChargeFailed = async (event, ctx) => {
         // update webhook_events with data that is known from the event before exiting
         await ctx.safeUpdateWebhook({
             stripe_invoice_id: invoiceId,
-            failure_code: charge.failure_code ?? null,
-            failure_message: charge.failure_message ?? null,
             charge_created_at: new Date(charge.created * 1000),
             stripe_customer_id: charge?.customer ?? null,
         })
@@ -242,8 +270,6 @@ const handleChargeFailed = async (event, ctx) => {
 
         await ctx.safeUpdateWebhook({
             stripe_invoice_id: invoiceId,
-            failure_code: charge.failure_code ?? null,
-            failure_message: charge.failure_message ?? null,
             charge_created_at: new Date(charge.created * 1000),
         })
 
@@ -252,8 +278,6 @@ const handleChargeFailed = async (event, ctx) => {
 
     await ctx.safeUpdateWebhook({
         stripe_invoice_id: invoiceId,
-        failure_code: charge.failure_code ?? null,
-        failure_message: charge.failure_message ?? null,
         charge_created_at: new Date(charge.created * 1000),
     })
 
@@ -338,38 +362,55 @@ const handleInvoicePaid = async (event, ctx) => {
         source = 'stripe_smart_retry'
     }
 
-    await RecoveryCases.update(
-        {
-            status: 'recovered',
-            recovered_at: invoice.status_transitions?.paid_at
-                ? new Date(invoice.status_transitions.paid_at * 1000)
-                : eventTime,
-            amount_recovered: invoice.amount_paid,
-            last_event_created_at: eventTime,
-            recovery_source: source
-        },
-        {
-            where: {
-                stripe_invoice_id: invoice.id,
-                status: 'active',
-                [Op.or]: [
-                    { last_event_created_at: null },
-                    { last_event_created_at: { [Op.lt]: eventTime } }
-                ]
-            }
+    const customer = await StripeAccountCustomers.findOne({
+        where: {
+            stripe_customer_id: invoice.customer,
+            stripe_account_uuid: recoveryCase.stripe_account_uuid
         }
-    )
-
-    const speed = (Date.now() - new Date(recoveryCase?.created_at).getTime()) / (1000 * 60 * 60)
-
-    await RecoveryStrategyStats.create({
-        id: uuid(),
-        recovery_case_uuid: recoveryCase.id,
-        email_step_used: recoveryCase.recovery_email_sent_count,
-        recovery_speed_hours: speed,
-        amount: invoice.amount_paid
     })
 
+    if (!customer) {
+        console.log("Customer not found")
+        return
+    }
+
+    if (recoveryCase.status !== 'recovered') {
+        await customer.increment({
+            total_recovered_revenue: invoice.amount_paid
+        })
+        await RecoveryCases.update(
+            {
+                status: 'recovered',
+                recovered_at: invoice.status_transitions?.paid_at
+                    ? new Date(invoice.status_transitions.paid_at * 1000)
+                    : eventTime,
+                amount_recovered: invoice.amount_paid,
+                last_event_created_at: eventTime,
+                recovery_source: source,
+                next_action_at: null
+            },
+            {
+                where: {
+                    stripe_invoice_id: invoice.id,
+                    status: 'active',
+                    [Op.or]: [
+                        { last_event_created_at: null },
+                        { last_event_created_at: { [Op.lt]: eventTime } }
+                    ]
+                }
+            }
+        )
+
+        const speed = (Date.now() - new Date(recoveryCase?.created_at).getTime()) / (1000 * 60 * 60)
+
+        await RecoveryStrategyStats.create({
+            id: uuid(),
+            recovery_case_uuid: recoveryCase.id,
+            email_step_used: recoveryCase.recovery_email_sent_count,
+            recovery_speed_hours: speed,
+            amount: invoice.amount_paid
+        })
+    }
 
     await ctx.safeUpdateWebhook({
         stripe_invoice_id: invoice.id,
@@ -407,41 +448,71 @@ const handleInvoicePaymentFailed = async (event, ctx) => {
         return
     }
 
-    // get customer info from event
-    let custEmail = invoice.customer_email || null
-    let custName = null
-    let custPhone = null
+    const stripeCust = await CustomerSyncService.resolveCustomerFromInvoice({
+        invoice,
+        stripeAccount: stripeAccount,
+        lastPaymentFailedAt: new Date(event.created * 1000),
+        eventId: event.id,
+        eventTime,
+        createSnapshot: true
+    })
 
-    if (!custEmail) {
-        const connectedStripe = new Stripe(
-            process.env.STRIPE_SECRET_KEY, { stripeAccount: stripeAccount.stripe_account_id })
-        const customer = await connectedStripe.customers.retrieve(invoice.customer)
-        if (!customer.deleted) {
-            custEmail = customer.email
-            custName = customer.name
-            custPhone = customer.phone
+
+    // console.log('payment_intent: ' + invoice.payment_intent)
+    // console.log('paymentintent: ' + invoice.paymentIntent)
+    const paymentIntentId = invoice.payment_intent
+
+    if (undefined !== paymentIntentId) {
+        const paymentIntent = await stripe.paymentIntents.retrieve(
+            invoice.payment_intent, { expand: ['last_payment_error'] },
+            {
+                stripeAccount: stripeAccount.stripe_account_id
+            }
+        )
+
+        if (paymentIntent) {
+            await ctx.safeUpdateWebhook({
+                failure_code: paymentIntent?.last_payment_error?.code,
+                failure_message: paymentIntent?.last_payment_error?.message,
+                decline_code: paymentIntent?.last_payment_error?.decline_code,
+                payment_method_type: paymentIntent?.last_payment_error?.payment_method_type,
+                network_decline_code: paymentIntent?.last_payment_error?.network_decline_code
+            })
+
+
+            console.log('payment_intent last_payment_error: ' + paymentIntent.last_payment_error, '::::: json:' + JSON.stringify(paymentIntent.last_payment_error))
         }
+
+    } else {
+        console.log('undefined paymentIntentId in invoice.payment_failed')
     }
 
-    if (customerRecord) {
-        await customerRecord.update({
-            email: custEmail,
-            name: null === customerRecord.name ? custName : null,
-            phone: null === customerRecord.phone ? custPhone : null,
-            last_payment_failed_at: new Date(event.created * 1000),
-            last_invoice_id: invoice.id
-        })
+    const { recoveryCase, created } = await RecoveryCaseService.upsertFromInvoice({
+        stripeAccount,
+        stripeAccountUuid,
+        customerRecordId: stripeCust?.id ?? null,
+        failureCode: stripeCust?.last_failure_code ?? null,
+        failureMessage: stripeCust?.last_failure_message ?? null,
+        invoice,
+        eventTime,
+        sourceEventId: event.id,
+        nextActionAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        invoiceCreatedAt: new Date(invoice.created * 1000),
+        historyImportedAt: null
+    })
+
+    if (created) {
+        await stripeCust.increment('total_failed_payments')
+        console.log(`Created recovery case for invoice ${invoice.id}`)
+    } else {
+        console.log(`Updated recovery case for invoice ${invoice.id}`)
     }
-
-
-    // not sure what is the issue with this. and then using it later in findorcreate()
-    const recoveryCaseId = uuid()
 
     // update webhook_events with internal stripe account uuid, and other info
     await ctx.safeUpdateWebhook({
         stripe_account_uuid: stripeAccountUuid,
         stripe_invoice_id: invoice.id,
-        related_recovery_case_id: recoveryCaseId,
+        related_recovery_case_id: recoveryCase.id,
         stripe_customer_id: invoice.customer,
     })
 
@@ -456,60 +527,60 @@ const handleInvoicePaymentFailed = async (event, ctx) => {
     //     ]
     // })
 
-    const subscriptionId =
-        invoice.subscription ||
-        invoice.lines?.data?.[0]?.subscription ||
-        null
+    // const subscriptionId =
+    //     invoice.subscription ||
+    //     invoice.lines?.data?.[0]?.subscription ||
+    //     null
 
-    const [recoveryCase, created] = await RecoveryCases.findOrCreate({
-        where: {
-            stripe_invoice_id: invoice.id
-        },
-        defaults: {
-            id: recoveryCaseId,
-            user_id: stripeAccount.user_id,
-            stripe_account_uuid: stripeAccountUuid,
-            stripe_customer_id: invoice.customer,
-            stripe_customer_uuid: customerRecord.id,
-            stripe_subscription_id: subscriptionId,
-            stripe_invoice_id: invoice.id,
-            amount_due: invoice.amount_due,
-            currency: invoice.currency,
-            stripe_payment_intent_id: invoice.payment_intent,
-            attempt_count: invoice.attempt_count,
-            failure_code: customerRecord?.last_failure_code ?? null,
-            failure_message: customerRecord?.last_failure_message ?? null,
-            source_event_id: event.id,
-            next_action_at: new Date(),
-            status: 'active',
-            last_failed_event_at: eventTime,
-            last_payment_attempt_at: eventTime,
-            invoice_created_at: new Date(invoice.created * 1000),
-            recovery_attempt_count: 0,
-            hosted_invoice_url: invoice.hosted_invoice_url,
-        }
-    })
+    // const [recoveryCase, created] = await RecoveryCases.findOrCreate({
+    //     where: {
+    //         stripe_invoice_id: invoice.id
+    //     },
+    //     defaults: {
+    //         id: recoveryCaseId,
+    //         user_id: stripeAccount.user_id,
+    //         stripe_account_uuid: stripeAccountUuid,
+    //         stripe_customer_id: invoice.customer,
+    //         stripe_customer_uuid: customerRecord.id,
+    //         stripe_subscription_id: subscriptionId,
+    //         stripe_invoice_id: invoice.id,
+    //         amount_due: invoice.amount_due,
+    //         currency: invoice.currency,
+    //         stripe_payment_intent_id: invoice.payment_intent,
+    //         attempt_count: invoice.attempt_count,
+    //         failure_code: customerRecord?.last_failure_code ?? null,
+    //         failure_message: customerRecord?.last_failure_message ?? null,
+    //         source_event_id: event.id,
+    //         next_action_at: new Date(),
+    //         status: 'active',
+    //         last_failed_event_at: eventTime,
+    //         last_payment_attempt_at: eventTime,
+    //         invoice_created_at: new Date(invoice.created * 1000),
+    //         recovery_attempt_count: 0,
+    //         hosted_invoice_url: invoice.hosted_invoice_url,
+    //     }
+    // })
 
-    if (created) {
-        console.log(`Created recovery case for invoice ${invoice.id}`)
-    } else {
-        console.log(`Updated recovery case for invoice ${invoice.id}`)
-        await recoveryCase.update({
-            attempt_count: invoice.attempt_count,
-            amount_due: invoice.amount_due,
-            hosted_invoice_url: invoice.hosted_invoice_url,
-            last_event_created_at: eventTime,
-            last_failed_event_at: eventTime,
-            last_payment_attempt_at: eventTime,
-            stripe_subscription_id: subscriptionId,
-            currency: invoice.currency
-        })
+    // if (created) {
+    //     console.log(`Created recovery case for invoice ${invoice.id}`)
+    // } else {
+    //     console.log(`Updated recovery case for invoice ${invoice.id}`)
+    //     await recoveryCase.update({
+    //         attempt_count: invoice.attempt_count,
+    //         amount_due: invoice.amount_due,
+    //         hosted_invoice_url: invoice.hosted_invoice_url,
+    //         last_event_created_at: eventTime,
+    //         last_failed_event_at: eventTime,
+    //         last_payment_attempt_at: eventTime,
+    //         stripe_subscription_id: subscriptionId,
+    //         currency: invoice.currency
+    //     })
 
-        await ctx.safeUpdateWebhook({
-            related_recovery_case_id: recoveryCase.id,
-            stripe_invoice_id: invoice.id,
-        })
-    }
+    //     await ctx.safeUpdateWebhook({
+    //         related_recovery_case_id: recoveryCase.id,
+    //         stripe_invoice_id: invoice.id,
+    //     })
+    // }
 }
 
 const handleSubscriptionCreated = async (event, ctx) => {
@@ -607,7 +678,8 @@ const hanldeCustomerUpdated = async (event, ctx) => {
     const customerRecord = await ensureStripeCustomer(
         customer.id,
         stripeAccountUuid,
-        null
+        null,
+        event
     )
 
     if (!customerRecord) return
@@ -652,7 +724,8 @@ const handleCustomerCreated = async (event, ctx) => {
     const customerRecord = await ensureStripeCustomer(
         customer.id,
         stripeAccountUuid,
-        userId
+        userId,
+        event
     )
 
     if (!customerRecord) return
@@ -682,6 +755,7 @@ const handleCustomerCreated = async (event, ctx) => {
         stripe_account_uuid: stripeAccountUuid,
     })
 }
+
 
 export const StripeWebhookService = {
     createCtx, handleInvoicePaymentFailed, handleChargeFailed,

@@ -24,6 +24,11 @@ import { router as stripeAccountRequest } from './routes/api/stripeAccountReques
 import { router as meRoute } from './routes/api/me.js'
 import { router as stripeRefresh } from './routes/api/stripeRefresh.js'
 import { router as stripeWebhook } from './routes/api/stripeWebhook.js'
+import { router as stripeHistorySync } from './routes/api/stripeHistorySync.js'
+import { router as verifyEmail } from './routes/verifyEmail.js'
+import { router as resendVerificationEmail } from './routes/resendVerificationEmail.js'
+import { router as forgotPassword } from './routes/forgotPassword.js'
+import { router as resetPassword } from './routes/resetPassword.js'
 
 
 import { verifyJWT } from './middleware/verifyJWT.js'
@@ -62,6 +67,10 @@ app.use(cookieParser())
 app.use('/register', register)
 app.use('/auth', auth)
 app.use('/connect/callback', connect)
+app.use('/verify-email', verifyEmail)
+app.use('/resend-verification', resendVerificationEmail)
+app.use('/forgot-password', forgotPassword)
+app.use('/reset-password', resetPassword)
 
 
 
@@ -73,6 +82,7 @@ app.use('/api/dashboard', dashboard)
 app.use('/api/me', meRoute)
 app.use('/api/stripe/disconnect', disconnect)
 app.use('/api/stripe/refresh', stripeRefresh)
+app.use('/api/stripe/historySync', stripeHistorySync)
 
 
 // app.use('/employees', import('./routes/api/employees'))

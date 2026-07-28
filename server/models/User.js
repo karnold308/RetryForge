@@ -26,6 +26,30 @@ const User = sequelizeConfig.define('User', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    email_verified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    email_verification_token: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    email_verification_expires: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    password_reset_token: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    password_reset_expires: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    password_changed_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
     created_at: {
         type: DataTypes.DATE,
         defaultValue: Sequelize.fn('NOW'),
