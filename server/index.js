@@ -53,6 +53,14 @@ app.use(cors(corsOptions))
 // 'content-type: application/x-www-form-urlencoded'
 app.use(express.urlencoded({ extended: false }))
 
+app.get("/env-test", (req, res) => {
+    res.json({
+        hasResendKey: !!process.env.RESEND_API_KEY,
+        nodeEnv: process.env.NODE_ENV,
+        backendUrl: !!process.env.BACKEND_URL,
+    });
+});
+
 app.use('/api/stripe', stripeWebhook)
 
 // built-in middleware for json
