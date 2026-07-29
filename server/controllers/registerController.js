@@ -35,12 +35,16 @@ const handleNewUser = async (req, res) => {
         console.log('about to call sendemailverif')
         // send verification email
         // handleSendVerificationEmail(email, process.env.BACKEND_URL, tokenHash)
-        const result = sendEmailVerification({
+        const { data, error } = sendEmailVerification({
             to: email,
             verifyEmailUrl: `${process.env.BACKEND_URL}/verify-email?token=${token}`
         })
 
-        console.log('sendemailverf result: ' + result)
+        console.log('sendemailverf result: ' + data)
+
+        if (error) {
+            console.error('Email failed to send: ', error);
+        }
 
         // create and store new user
         const newUser = await User.create({

@@ -1,6 +1,3 @@
-const dotenv = await import('dotenv')
-dotenv.default.config()
-
 import { Resend } from 'resend'
 console.log("RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY)
 console.log(process.env.RESEND_API_KEY);

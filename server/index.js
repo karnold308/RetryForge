@@ -86,6 +86,19 @@ app.use('/api/jobs', jobsProcessor)
 // dont want JWT on register or auth
 app.use(verifyJWT)
 
+import { connectDB } from "./config/dbConnect.js"
+
+app.use(async (req,res,next)=>{
+    try {
+        await connectDB()
+        next()
+    } catch(err){
+        res.status(500).json({
+            message:"Database unavailable"
+        })
+    }
+})
+
 app.use('/api/stripe/connect', stripeAccountRequest)
 app.use('/api/dashboard', dashboard)
 app.use('/api/me', meRoute)
@@ -141,15 +154,15 @@ app.get('/chain', [one, two,three])
 
 app.use(errorHandler)
 
-pool.connect()
-    .then(() => {
-        console.log('Connected to postgresql DB')
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+// pool.connect()
+//     .then(() => {
+//         console.log('Connected to postgresql DB')
+//         app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
 
-    }).catch((err) => {
-        console.log(err)
-        console.log("can't connect to db")
-    })
+//     }).catch((err) => {
+//         console.log(err)
+//         console.log("can't connect to db")
+//     })
 
 
 export default app

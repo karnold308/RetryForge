@@ -13,6 +13,12 @@ const sequelizeConfig = new Sequelize(
     {
         host,
         dialect: 'postgres',
+        pool: {
+            max: 3,
+            min: 0,
+            idle: 10000,
+            acquire: 30000
+        },
         dialectOptions: {
             ssl: process.env.NODE_ENV === 'production'
                 ? {
