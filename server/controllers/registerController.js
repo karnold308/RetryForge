@@ -32,12 +32,15 @@ const handleNewUser = async (req, res) => {
         //encrypt password
         const hashedPwd = await bcrypt.hash(pwd, 10)
 
+        console.log('about to call sendemailverif')
         // send verification email
         // handleSendVerificationEmail(email, process.env.BACKEND_URL, tokenHash)
-        sendEmailVerification({
+        const result = sendEmailVerification({
             to: email,
             verifyEmailUrl: `${process.env.BACKEND_URL}/verify-email?token=${token}`
         })
+
+        console.log('sendemailverf result: ' + JSON.stringify(result))
 
         // create and store new user
         const newUser = await User.create({
@@ -53,6 +56,7 @@ const handleNewUser = async (req, res) => {
         // console.log("handleNewUser end")
         res.status(201).json({ success: true, message: `New user: '${email}' created. Please check your email.` })
     } catch (err) {
+        console.log('email verif error message: ' + err.message)
         res.status(500).json({ 'message': err.message })
     }
 }
