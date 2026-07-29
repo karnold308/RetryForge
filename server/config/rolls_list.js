@@ -1,7 +1,7 @@
 const ROLES_LIST = {
-    "Admin": 5150,
-    "Editor": 1984,
-    "User": 2001
+    "Admin": 9999,
+    "Manager": 4999,
+    "Employee": 1001
 }
 
 export { ROLES_LIST };
