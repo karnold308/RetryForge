@@ -12,6 +12,9 @@ const connectionString = process.env.NODE_ENV === 'production'
   ? process.env.retryforge_DATABASE_URL
   : `postgresql://${user}:${pwd}@${host}:${port}/${dbName}`
 
+  console.log("env test:", process.env.NODE_ENV)
+  console.log("host test:", process.env.DB_HOST)
+
 const poolConfig = process.env.NODE_ENV === 'production'
   ? {
     connectionString: connectionString,
