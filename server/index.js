@@ -29,6 +29,7 @@ import { router as verifyEmail } from './routes/verifyEmail.js'
 import { router as resendVerificationEmail } from './routes/resendVerificationEmail.js'
 import { router as forgotPassword } from './routes/forgotPassword.js'
 import { router as resetPassword } from './routes/resetPassword.js'
+import { router as jobsProcessor } from './routes/api/jobsProcessor.js'
 
 
 import { verifyJWT } from './middleware/verifyJWT.js'
@@ -71,7 +72,7 @@ app.use('/verify-email', verifyEmail)
 app.use('/resend-verification', resendVerificationEmail)
 app.use('/forgot-password', forgotPassword)
 app.use('/reset-password', resetPassword)
-
+app.use('/api/jobs', jobsProcessor)
 
 
 // dont want JWT on register or auth

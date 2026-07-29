@@ -1,6 +1,6 @@
 import Stripe from 'stripe'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-import { User, StripeAccount } from '../models/index.js'
+import { User, StripeAccount, RecoveryCases } from '../models/index.js'
 
 const clientId = process.env.STRIPE_CLIENT_ID
 const frontEndUrl = process.env.NODE_ENV === 'production' ?
@@ -20,6 +20,12 @@ const handleAccountDisconnection = async (req, res) => {
 
         const stripeAccount = user?.stripeAccount
 
+        if (!stripeAccount || !stripeAccount.connected) {
+            return res.status(400).json({
+                message: "No connected Stripe account."
+            })
+        }
+
         const response = await stripe.oauth.deauthorize({
             client_id: clientId,
             stripe_user_id: stripeAccount.stripe_account_id,
@@ -36,12 +42,24 @@ const handleAccountDisconnection = async (req, res) => {
             payouts_enabled: false
         })
 
-
+        await RecoveryCases.update(
+            {
+                status: "cancelled",
+                next_action_at: null,
+                updated_at: new Date()
+            },
+            {
+                where: {
+                    stripe_account_uuid: stripeAccount.id,
+                    status: "active"
+                }
+            }
+        )
 
         return res.status(200).json({
             success: true
         })
-        
+
     } catch (err) {
         console.error(err)
         return res.status(500).json({

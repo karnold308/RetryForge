@@ -41,14 +41,14 @@ const handleResetPassword = async (req, res) => {
         })
     }
 
-    const passwordMatches = await bcrypt.compare(password, user.password_hash);
+    const passwordMatches = await bcrypt.compare(password, user.password_hash)
 
     if (passwordMatches) {
         return res.status(400).json({
             success: false,
             code: "PASSWORD_SAME_AS_CURRENT",
             message: "Please choose a different password."
-        });
+        })
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
