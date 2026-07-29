@@ -40,7 +40,7 @@ const handleNewUser = async (req, res) => {
             verifyEmailUrl: `${process.env.BACKEND_URL}/verify-email?token=${token}`
         })
 
-        console.log('sendemailverf result: ' + JSON.stringify(result))
+        console.log('sendemailverf result: ' + result)
 
         // create and store new user
         const newUser = await User.create({
