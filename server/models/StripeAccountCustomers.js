@@ -31,7 +31,7 @@ const StripeAccountCustomers = sequelizeConfig.define('StripeAccountCustomers', 
         allowNull: true,
         references: {
             model: {
-                tableName: 'USERS',
+                tableName: 'users',
                 schema: 'rforge'
             },
             key: 'id'

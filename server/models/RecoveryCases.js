@@ -16,7 +16,7 @@ const RecoveryCases = sequelizeConfig.define('RecoveryCases', {
         allowNull: false,
         references: {
             model: {
-                tableName: 'USERS',
+                tableName: 'users',
                 schema: 'rforge'
             },
             key: 'id'

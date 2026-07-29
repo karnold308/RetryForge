@@ -67,7 +67,7 @@ const User = sequelizeConfig.define('User', {
 
 }, {
     schema: 'rforge',
-    tableName: 'USERS',
+    tableName: 'users',
     timestamps: false
 });
 export default User;

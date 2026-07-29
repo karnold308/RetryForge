@@ -17,7 +17,7 @@ const StripeAccount = sequelizeConfig.define('StripeAccount', {
         unique: true,
         references: {
             model: {
-                tableName: 'USERS',
+                tableName: 'users',
                 schema: 'rforge'
             },
             key: 'id'
