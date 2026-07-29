@@ -133,6 +133,8 @@ app.get('/chain', [one, two,three])
 
 app.use(errorHandler)
 
+console.log("RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY)
+
 pool.connect()
     .then(() => {
         console.log('Connected to postgresql DB')
