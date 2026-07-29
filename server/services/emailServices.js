@@ -1,5 +1,12 @@
+const dotenv = await import('dotenv')
+dotenv.default.config()
+
 import { Resend } from 'resend'
+console.log("RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY)
+console.log(process.env.RESEND_API_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY)
+
+console.log("RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY)
 
 export const sendRecoveryEmail = async ({
     to,
