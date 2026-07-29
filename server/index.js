@@ -155,7 +155,7 @@ app.get('/chain', [one, two,three])
 app.use(errorHandler)
 
 if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
-
+    // do nothing
 } else {
     pool.connect()
         .then(() => {
