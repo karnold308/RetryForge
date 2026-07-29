@@ -6,8 +6,7 @@ import { encrypt } from '../utils/encryption.js'
 const ALGORITHM = 'aes-256-gcm'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 const { v4: uuid } = await import('uuid')
-const frontEndUrl = process.env.NODE_ENV === 'production' ?
-    process.env.retryforge_DATABASE_URL : process.env.FRONT_END_URL
+const frontEndUrl = process.env.FRONT_END_URL
 
 import { HistorySyncService } from '../services/historySyncService.js'
 
@@ -103,8 +102,18 @@ const handleNewAccountConnection = async (req, res) => {
 
     } catch (err) {
         console.error(err)
+        if (err.name === "TokenExpiredError") {
+            return res.redirect(
+                `${frontEndUrl}/dashboard?stripe=expired`
+            )
+        }
+
+        return res.redirect(
+            `${frontEndUrl}/dashboard?stripe=error`
+        )
+
         // TODO: make this front end page
-        return res.redirect(`${frontEndUrl}/connect/error`)
+        // return res.redirect(`${frontEndUrl}/connect/error`)
     }
 }
 

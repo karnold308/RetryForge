@@ -3,8 +3,7 @@ import crypto from 'crypto'
 import bcrypt from 'bcrypt'
 import { sendForgotPasswordEmail } from '../services/emailServices.js'
 
-const frontEndUrl = process.env.NODE_ENV === 'production' ?
-    process.env.retryforge_DATABASE_URL : process.env.FRONT_END_URL
+const frontEndUrl = process.env.FRONT_END_URL
 
 const handleResetPassword = async (req, res) => {
     const { token, password } = req.body

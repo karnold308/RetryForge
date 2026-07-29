@@ -5,9 +5,6 @@ import asyncHandler from 'express-async-handler'
 
 
 const handleLogin = asyncHandler(async (req, res) => {
-    const frontEndUrl = process.env.NODE_ENV === 'production' ?
-        process.env.retryforge_DATABASE_URL : process.env.FRONT_END_URL
-
     const { email, pwd } = req.body
     if (!email || !pwd) return res.status(400).json({ 'message': 'Email and password are required.' })
 

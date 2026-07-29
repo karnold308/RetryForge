@@ -3,8 +3,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 import { User, StripeAccount, RecoveryCases } from '../models/index.js'
 
 const clientId = process.env.STRIPE_CLIENT_ID
-const frontEndUrl = process.env.NODE_ENV === 'production' ?
-    process.env.retryforge_DATABASE_URL : process.env.FRONT_END_URL
 
 const handleAccountDisconnection = async (req, res) => {
 

@@ -6,8 +6,6 @@ import crypto from 'crypto'
 const frontEndUrl = process.env.FRONT_END_URL
 
 const handleVerifyEmail = async (req, res) => {
-
-    console.log('in handleVerifyEmail' )
     const token = req.query.token
 
     const incomingHash = crypto.createHash("sha256").update(token).digest("hex")
