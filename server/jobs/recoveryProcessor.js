@@ -89,7 +89,6 @@ function hoursSince(date) {
 }
 
 export async function recoveryProcessor() {
-    console.log('in recoveryProcessor')
     await CronJobAudit.create({
         id: uuid(),
         created_at: new Date()

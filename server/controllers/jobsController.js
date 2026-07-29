@@ -1,7 +1,6 @@
 import { recoveryProcessor } from '../jobs/recoveryProcessor.js'
 
 const handleRecoveryProcessor = async (req, res) => {
-    console.log('in handleRecoveryProcessor')
 
     try {
         await recoveryProcessor()
