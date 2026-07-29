@@ -6,7 +6,7 @@ const path = import('path')
 import cors from 'cors'
 import { errorHandler } from './middleware/errorHandler.js'
 import { logger } from './middleware/logEvents.js'
-import { corsOptions } from'./config/corsOptions.js'
+import { corsOptions } from './config/corsOptions.js'
 import { credentials } from './middleware/credentials.js'
 import { pool } from './config/dbConn.js'
 import cookieParser from 'cookie-parser'
@@ -88,13 +88,13 @@ app.use(verifyJWT)
 
 import { connectDB } from "./config/dbConnect.js"
 
-app.use(async (req,res,next)=>{
+app.use(async (req, res, next) => {
     try {
         await connectDB()
         next()
-    } catch(err){
+    } catch (err) {
         res.status(500).json({
-            message:"Database unavailable"
+            message: "Database unavailable"
         })
     }
 })
@@ -154,15 +154,20 @@ app.get('/chain', [one, two,three])
 
 app.use(errorHandler)
 
-// pool.connect()
-//     .then(() => {
-//         console.log('Connected to postgresql DB')
-//         app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
 
-//     }).catch((err) => {
-//         console.log(err)
-//         console.log("can't connect to db")
-//     })
+} else {
+    pool.connect()
+        .then(() => {
+            console.log('Connected to postgresql DB')
+            app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+
+        }).catch((err) => {
+            console.log(err)
+            console.log("can't connect to db")
+        })
+}
+
 
 
 export default app
