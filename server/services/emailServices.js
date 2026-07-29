@@ -75,7 +75,7 @@ export const sendEmailVerification = async ({
 }) => {
 
 
-    console.log('in sendEmailVerification******************* verifyEmailUrl: ' + verifyEmailUrl)
+    // console.log('in sendEmailVerification******************* verifyEmailUrl: ' + verifyEmailUrl)
     return await resend.emails.send({
         from: 'RetryForge <welcome@notifications.retryforge.com>',
         to,

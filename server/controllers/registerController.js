@@ -32,12 +32,12 @@ const handleNewUser = async (req, res) => {
         //encrypt password
         const hashedPwd = await bcrypt.hash(pwd, 10)
 
-        console.log('about to call sendemailverif')
+        // console.log('about to call sendemailverif')
         // send verification email
         // handleSendVerificationEmail(email, process.env.BACKEND_URL, tokenHash)
-        
+
         // const { data, error } = await 
-        sendEmailVerification({
+        await sendEmailVerification({
             to: email,
             verifyEmailUrl: `${process.env.BACKEND_URL}/verify-email?token=${token}`
         })
