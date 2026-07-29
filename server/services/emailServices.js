@@ -1,9 +1,5 @@
 import { Resend } from 'resend'
-console.log("RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY)
-console.log(process.env.RESEND_API_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY)
-
-console.log("RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY)
 
 export const sendRecoveryEmail = async ({
     to,
@@ -14,8 +10,6 @@ export const sendRecoveryEmail = async ({
 
     let emailHeader = ''
     let emailBodyText = ''
-    console.log('start sendRecoveryEmail')
-    // console.log('to: ' + to)
 
     switch (emailNumber) {
         case 1:
@@ -80,7 +74,8 @@ export const sendEmailVerification = async ({
     verifyEmailUrl
 }) => {
 
-    console.log('in sendEmailVerification*******************')
+
+    console.log('in sendEmailVerification******************* verifyEmailUrl: ' + verifyEmailUrl)
     return await resend.emails.send({
         from: 'RetryForge <welcome@notifications.retryforge.com>',
         to,
