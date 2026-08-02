@@ -2,10 +2,10 @@
 import { User } from '../models/index.js'
 import { sendEmailVerification } from '../services/emailServices.js'
 import crypto from 'crypto'
-
+import asyncHandler from 'express-async-handler'
 const frontEndUrl = process.env.FRONT_END_URL
 
-const handleVerifyEmail = async (req, res) => {
+const handleVerifyEmail = asyncHandler(async (req, res) => {
     const token = req.query.token
 
     const incomingHash = crypto.createHash("sha256").update(token).digest("hex")
@@ -35,11 +35,11 @@ const handleVerifyEmail = async (req, res) => {
     })
 
     return res.redirect(`${frontEndUrl}/login?verified=success`)
-}
+})
 
 // look up user from email in request, verify user, 
 // create and save new token and expiration date, send new email, return message
-const handleResendVerificationEmail = async (req, res) => {
+const handleResendVerificationEmail = asyncHandler(async (req, res) => {
     const email = req.body.email
 
     const user = await User.findOne({
@@ -83,7 +83,7 @@ const handleResendVerificationEmail = async (req, res) => {
         return res.status(500).json({success: false, message: 'There was an issue sending the verification email. Please try again. Email support if the issue continues.'})
     }
 
-}
+})
 
 
 export { handleVerifyEmail, handleResendVerificationEmail }

@@ -30,6 +30,7 @@ import { router as resendVerificationEmail } from './routes/resendVerificationEm
 import { router as forgotPassword } from './routes/forgotPassword.js'
 import { router as resetPassword } from './routes/resetPassword.js'
 import { router as jobsProcessor } from './routes/api/jobsProcessor.js'
+import { router as adminLogs } from './routes/api/adminLogs.js'
 
 
 import { verifyJWT } from './middleware/verifyJWT.js'
@@ -82,7 +83,6 @@ app.use('/forgot-password', forgotPassword)
 app.use('/reset-password', resetPassword)
 app.use('/api/jobs', jobsProcessor)
 
-
 // dont want JWT on register or auth
 app.use(verifyJWT)
 
@@ -105,6 +105,7 @@ app.use('/api/me', meRoute)
 app.use('/api/stripe/disconnect', disconnect)
 app.use('/api/stripe/refresh', stripeRefresh)
 app.use('/api/stripe/historySync', stripeHistorySync)
+app.use('/api/admin/logs', adminLogs)
 
 
 // app.use('/employees', import('./routes/api/employees'))

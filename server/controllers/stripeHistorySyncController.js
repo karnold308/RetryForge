@@ -1,19 +1,31 @@
 import { HistorySyncService } from '../services/historySyncService.js'
 import { StripeAccount } from '../models/index.js'
+import asyncHandler from 'express-async-handler'
+import { logError } from '../services/loggerService.js'
 
 
-const handleHistorySync = async (req, res) => {
+const handleHistorySync = asyncHandler(async (req, res) => {
+    let userId
+    let stripeAccount
+    
     try {
-        const userId = req.userId
+        userId = req.userId
 
-        const stripeAccount = await StripeAccount.findOne({
+        stripeAccount = await StripeAccount.findOne({
             where: { user_id: req.userId }
         })
 
         HistorySyncService.importFailedInvoices({
             stripeAccount
         }).catch(err => {
-            console.error("History sync failed", err)
+            logError({
+                source: "stripeHistorySyncController.handleHistorySync()",
+                message: 'History sync failed',
+                error: err,
+                userId: userId ?? null,
+                stripeAccountUuid: stripeAccount?.id ?? null,
+                metadata: {}
+            })
         })
 
         return res.status(202).json({
@@ -21,19 +33,29 @@ const handleHistorySync = async (req, res) => {
         })
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "stripeHistorySyncController.handleHistorySync()",
+            message: 'Unable to start history sync',
+            error: err,
+            userId: userId ?? null,
+            stripeAccountUuid: stripeAccount?.id ?? null,
+            metadata: {}
+        })
 
         return res.status(500).json({
             message: "Unable to start history sync."
         })
     }
-}
+})
 
-const skipHistorySync = async (req, res) => {
+const skipHistorySync = asyncHandler(async (req, res) => {
+    let userId
+    let stripeAccount
+
     try {
-        const userId = req.userId
+        userId = req.userId
 
-        const stripeAccount = await StripeAccount.findOne({
+        stripeAccount = await StripeAccount.findOne({
             where: { user_id: req.userId }
         })
 
@@ -49,13 +71,20 @@ const skipHistorySync = async (req, res) => {
         })
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "stripeHistorySyncController.skipHistorySync()",
+            message: 'Unable to skip history sync',
+            error: err,
+            userId: userId ?? null,
+            stripeAccountUuid: stripeAccount?.id ?? null,
+            metadata: {}
+        })
 
         return res.status(500).json({
             message: "Unable to skip history sync."
         })
     }
 
-}
+})
 
 export { handleHistorySync, skipHistorySync }

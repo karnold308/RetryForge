@@ -9,6 +9,7 @@ import asyncHandler from 'express-async-handler'
 import { Sequelize, Op, fn, col } from 'sequelize'
 import { retryStripePayment } from '../services/stripeRetryService.js'
 const { v4: uuid } = await import('uuid')
+import { logError } from '../services/loggerService.js'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
@@ -26,8 +27,9 @@ const getDashboard = asyncHandler(async (req, res) => {
 
 
 const getDashboardOverview = asyncHandler(async (req, res) => {
+    let userId
     try {
-        const userId = req.userId
+        userId = req.userId
 
         const activeRecoveries = await RecoveryCases.count({
             where: {
@@ -140,7 +142,13 @@ const getDashboardOverview = asyncHandler(async (req, res) => {
         })
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "dashboardController.getDashboardOverview()",
+            message: 'Failed to load overview',
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
 
         return res.status(500).json({
             error: 'Failed to load overview'
@@ -150,8 +158,9 @@ const getDashboardOverview = asyncHandler(async (req, res) => {
 
 
 const getDashboardRecoveries = asyncHandler(async (req, res) => {
+    let userId
     try {
-        const userId = req.userId
+        userId = req.userId
 
         const cases = await RecoveryCases.findAll({
             where: {
@@ -183,14 +192,25 @@ const getDashboardRecoveries = asyncHandler(async (req, res) => {
 
         res.json(formatted)
     } catch (err) {
+        await logError({
+            source: "dashboardController.getDashboardRecoveries()",
+            message: 'Failed to get recoveries',
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
 
+        return res.status(500).json({ error: "Failed to fetch recoveries" })
     }
 })
 
 const getDashboardCustomers = asyncHandler(async (req, res) => {
+    let userId = req.userId
+    let stripeAccount
+
     try {
 
-        const stripeAccount = await StripeAccount.findOne({
+        stripeAccount = await StripeAccount.findOne({
             where: {
                 user_id: req.userId
             }
@@ -255,14 +275,24 @@ const getDashboardCustomers = asyncHandler(async (req, res) => {
         res.json(rows)
 
     } catch (err) {
-        console.error("getCustomers error:", err)
+        await logError({
+            source: "dashboardController.getDashboardCustomers()",
+            message: 'Failed to get customers',
+            error: err,
+            userId: userId ?? null,
+            stripeAccountUuid: stripeAccount?.id ?? null,
+            metadata: {}
+        })
+
         return res.status(500).json({ error: "Failed to fetch customers" })
     }
 })
 
 const getDashboardAtRiskCustomers = asyncHandler(async (req, res) => {
+    let userId
+
     try {
-        const userId = req.userId
+        userId = req.userId
 
         const customers = await StripeAccountCustomers.findAll({
             where: {
@@ -301,13 +331,20 @@ const getDashboardAtRiskCustomers = asyncHandler(async (req, res) => {
         res.json(result)
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "dashboardController.getDashboardAtRiskCustomers()",
+            message: 'Failed to fetch at-risk customers',
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
+
         res.status(500).json({ error: "Failed to fetch at-risk customers" })
     }
 })
 
 const getDashboardAnalytics = asyncHandler(async (req, res) => {
-    const userId = req.userId
+    let userId = req.userId
 
     try {
         const totalFailures = await RecoveryCases.count({
@@ -367,19 +404,21 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
         })
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "dashboardController.getDashboardAnalytics()",
+            message: 'Failed to load analytics',
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
 
-        return res
-            .status(500)
-            .json({
-                message:
-                    'Failed to load analytics'
-            })
+        return res.status(500).json({ message: 'Failed to load analytics' })
     }
 })
 
 
 const getDashboardRecoveryDetail = asyncHandler(async (req, res) => {
+    let userId
     try {
         const recoveryCase =
             await RecoveryCases.findOne({
@@ -395,6 +434,7 @@ const getDashboardRecoveryDetail = asyncHandler(async (req, res) => {
                         'Cannot find recovery detail for: ' + req.params.id
                 })
         }
+        userId = recoveryCase.user_id
 
         const customer =
             await StripeAccountCustomers.findOne({
@@ -423,20 +463,25 @@ const getDashboardRecoveryDetail = asyncHandler(async (req, res) => {
         })
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "dashboardController.getDashboardRecoveryDetail()",
+            message: 'Failed to load recovery detail for: ' + req?.params?.id,
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
 
         return res
             .status(500)
-            .json({
-                message:
-                    'Failed to load recovery detail for: ' + req.params.id
-            })
+            .json({ message: 'Failed to load recovery detail for: ' + req.params.id })
     }
 })
 
 const getDashboardRecentRecoveries = asyncHandler(async (req, res) => {
+    let userId
+
     try {
-        const userId = req.userId
+        userId = req.userId
 
         const cases = await RecoveryCases.findAll({
             where: {
@@ -467,11 +512,16 @@ const getDashboardRecentRecoveries = asyncHandler(async (req, res) => {
         res.json(formatted)
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "dashboardController.getDashboardRecentRecoveries()",
+            message: 'Failed to fetch recent recoveries',
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
+
         res.status(500).json({ error: "Failed to fetch recent recoveries" })
     }
-
-
 })
 
 
@@ -492,10 +542,12 @@ const getRecoveryCaseTimeline = asyncHandler(async (req, res) => {
 })
 
 const getDashboardSystemStatus = asyncHandler(async (req, res) => {
+    let userId = req.userId
+
     try {
 
         const stripeAccount = await StripeAccount.findOne({
-            where: { user_id: req.userId }
+            where: { user_id: userId }
         })
 
         const webhookEvent = await WebhookEvents.findOne({
@@ -526,7 +578,13 @@ const getDashboardSystemStatus = asyncHandler(async (req, res) => {
         })
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "dashboardController.getDashboardSystemStatus()",
+            message: 'Failed to fetch system status',
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
         res.status(500).json({ error: "Failed to fetch system status" })
     }
 })
@@ -535,72 +593,87 @@ const getDashboardSystemStatus = asyncHandler(async (req, res) => {
 const getTopOpportunities = asyncHandler(async (req, res) => {
     const userId = req.userId
 
-    const customers = await StripeAccountCustomers.findAll({
-        where: { user_id: userId },
-        include: [{
-            model: RecoveryCases,
-            as: "recoveryCases",
-            attributes: [
-                "id",
-                "amount_due",
-                "last_failed_event_at",
-                "attempt_count"
-            ],
-            where: { status: "active" },
-            required: true
-        }]
-    })
+    try {
+        const customers = await StripeAccountCustomers.findAll({
+            where: { user_id: userId },
+            include: [{
+                model: RecoveryCases,
+                as: "recoveryCases",
+                attributes: [
+                    "id",
+                    "amount_due",
+                    "last_failed_event_at",
+                    "attempt_count"
+                ],
+                where: { status: "active" },
+                required: true
+            }]
+        })
 
-    const now = Date.now()
+        const now = Date.now()
 
-    const scored = customers.map(c => {
-        const activeFailures = c.recoveryCases.length
+        const scored = customers.map(c => {
+            const activeFailures = c.recoveryCases.length
 
-        const sortedCases = c.recoveryCases.sort(
-            (a, b) => b.amount_due - a.amount_due
-        )
-
-        const topCase = sortedCases[0]
-
-        const totalAtRisk = c.recoveryCases.reduce(
-            (sum, r) => sum + Number(r.amount_due), 0)
-
-        const mostRecent = Math.max(
-            ...c.recoveryCases.map(r =>
-                new Date(r.last_failed_event_at).getTime()
+            const sortedCases = c.recoveryCases.sort(
+                (a, b) => b.amount_due - a.amount_due
             )
-        )
 
-        const hoursSinceFailure = (now - mostRecent) / (1000 * 60 * 60)
+            const topCase = sortedCases[0]
 
-        let recencyMultiplier = 0.7
-        if (hoursSinceFailure < 24) recencyMultiplier = 1.5
-        else if (hoursSinceFailure < 72) recencyMultiplier = 1.2
-        else if (hoursSinceFailure < 168) recencyMultiplier = 1.0
+            const totalAtRisk = c.recoveryCases.reduce(
+                (sum, r) => sum + Number(r.amount_due), 0)
 
-        const attemptAvg = c.recoveryCases.reduce((s, r) => s + r.attempt_count, 0) / activeFailures
+            const mostRecent = Math.max(
+                ...c.recoveryCases.map(r =>
+                    new Date(r.last_failed_event_at).getTime()
+                )
+            )
 
-        let attemptMultiplier = 1.0;
-        if (attemptAvg >= 5) attemptMultiplier = 0.6;
-        else if (attemptAvg >= 3) attemptMultiplier = 0.8;
+            const hoursSinceFailure = (now - mostRecent) / (1000 * 60 * 60)
 
-        const score = totalAtRisk * (1 + activeFailures * 0.25) * recencyMultiplier * attemptMultiplier
+            let recencyMultiplier = 0.7
+            if (hoursSinceFailure < 24) recencyMultiplier = 1.5
+            else if (hoursSinceFailure < 72) recencyMultiplier = 1.2
+            else if (hoursSinceFailure < 168) recencyMultiplier = 1.0
 
-        return {
-            id: c.id,
-            email: c.email,
-            name: c.name,
-            totalAtRisk,
-            activeFailures,
-            lastFailedAt: new Date(mostRecent),
-            score,
-            topCaseId: topCase.id
-        }
-    })
+            const attemptAvg = c.recoveryCases.reduce((s, r) => s + r.attempt_count, 0) / activeFailures
 
-    const sorted = scored.sort((a, b) => b.score - a.score).slice(0, 5)
+            let attemptMultiplier = 1.0;
+            if (attemptAvg >= 5) attemptMultiplier = 0.6;
+            else if (attemptAvg >= 3) attemptMultiplier = 0.8;
 
-    res.json(sorted)
+            const score = totalAtRisk * (1 + activeFailures * 0.25) * recencyMultiplier * attemptMultiplier
+
+            return {
+                id: c.id,
+                email: c.email,
+                name: c.name,
+                totalAtRisk,
+                activeFailures,
+                lastFailedAt: new Date(mostRecent),
+                score,
+                topCaseId: topCase.id
+            }
+        })
+
+        const sorted = scored.sort((a, b) => b.score - a.score).slice(0, 5)
+
+        res.json(sorted)
+    } catch (err) {
+        await logError({
+            source: "dashboardController.getTopOpportunities()",
+            message: 'Failed to get top opportunities',
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
+
+        return res.status(500).json({
+            error: 'Failed to get top opportunities',
+            message: err.message
+        })
+    }
 })
 
 const retryRecoveryNow = asyncHandler(async (req, res) => {
@@ -738,7 +811,13 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
         })
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "dashboardController.retryRecoveryNow()",
+            message: 'Manual Stripe retry failed',
+            error: err,
+            userId: userId ?? null,
+            metadata: { recoveryId: recoveryId ?? null }
+        })
 
         return res.status(500).json({
             error: 'Manual Stripe retry failed',

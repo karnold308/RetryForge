@@ -1,14 +1,12 @@
 import User from '../models/User.js'
 import crypto from 'crypto'
-import { sendRecoveryEmail, sendEmailVerification } from '../services/emailServices.js'
-
-
+import { sendEmailVerification } from '../services/emailServices.js'
+import asyncHandler from 'express-async-handler'
 const bcrypt = await import('bcrypt')
 const { v4: uuid } = await import('uuid')
 
 
-
-const handleNewUser = async (req, res) => {
+const handleNewUser = asyncHandler(async (req, res) => {
     const { company, pwd, email } = req.body
 
     // console.log("handleNewUser start")
@@ -65,14 +63,8 @@ const handleNewUser = async (req, res) => {
         console.log('email verif error message: ' + err.message)
         res.status(500).json({ 'message': err.message })
     }
-}
+})
 
-// function handleSendVerificationEmail(to, backendUrlHost, tokenHash) {
-//     const result = sendEmailVerification({
-//         to,
-//         verifyEmailUrl: `${backendUrlHost}/verify-email?token=${tokenHash}`
-//     })
-// }
 
 
 export { handleNewUser }

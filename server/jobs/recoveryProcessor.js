@@ -3,13 +3,14 @@
 import { Op } from 'sequelize'
 import { sendRecoveryEmail } from '../services/emailServices.js'
 import { retryStripePayment } from '../services/stripeRetryService.js'
-
+import asyncHandler from 'express-async-handler'
 import {
     RecoveryCases, StripeAccountCustomers,
     RecoveryCommunications, StripeAccount,
     CronJobAudit,
     WebhookEvents
 } from '../models/index.js'
+import { logError } from '../services/loggerService.js'
 
 const { v4: uuid } = await import('uuid')
 
@@ -106,9 +107,8 @@ export async function recoveryProcessor() {
 
     console.log('num of active cases: ' + activeCases.length)
 
-
     for (const recoveryCase of activeCases) {
-        console.log('recoveryCase id: ' + recoveryCase.id)
+        // console.log('recoveryCase id: ' + recoveryCase.id)
         if (null === recoveryCase.failure_message) {
             // for each recovery case, look up webhook events for that customer and get 
             // failure_code, failure_message....
@@ -190,18 +190,20 @@ export async function recoveryProcessor() {
         }
 
         let retryAttemptSuccessful = false
+        let stripeAccount
+
+
         try {
-            console.log('step: ' + JSON.stringify(step))
             if (step.complete) {
-                console.log('continuing because complete is true')
                 await recoveryCase.update({
                     next_action_at: null
                 })
                 continue
             }
 
+            
+
             if (!step.isDue) {
-                console.log('continuing because isDue is false')
                 continue
             }
 
@@ -220,21 +222,31 @@ export async function recoveryProcessor() {
             if (step.shouldRetry) {
 
                 // if (action?.stripeRetry) {
-                console.log('going to do an automatic retryforge retry')
 
                 if (!recoveryCase.stripe_invoice_id) {
                     console.log("No inoice Id — skipping retry")
                     continue
                 }
 
-                const stripeAccount = await StripeAccount.findByPk(
+                stripeAccount = await StripeAccount.findByPk(
                     recoveryCase.stripe_account_uuid
                 )
+                try {
 
-                const result = await retryStripePayment({
-                    stripeAccountId: stripeAccount.stripe_account_id,
-                    invoiceId: recoveryCase.stripe_invoice_id
-                })
+                    const result = await retryStripePayment({
+                        stripeAccountId: stripeAccount.stripe_account_id,
+                        invoiceId: recoveryCase.stripe_invoice_id
+                    })
+                } catch (err) {
+                    await logError({
+                        source: "recoveryProcessor.recoveryProcessor()",
+                        message: "Error retrying stripe invoice",
+                        error: err,
+                        stripeAccountUuid: stripeAccount?.id ?? null,
+                        metadata: { stripeAccountId: stripeAccount.stripe_account_id, invoiceId: recoveryCase.stripe_invoice_id }
+                    })
+                    continue
+                }
 
                 retrySucceeded = true
 
@@ -257,7 +269,7 @@ export async function recoveryProcessor() {
                     status: result.success ? 'success' : 'failed',
                     provider_id: result.intent?.id ?? null,
                     sent_at: new Date(),
-                    metadata: { error: result.error ?? null }
+                    metadata: { error: result.error ?? null, invoiceId: recoveryCase?.invoiceId }
                 })
 
                 // update case summary after charge retry
@@ -285,16 +297,26 @@ export async function recoveryProcessor() {
                 // const emailNumber = decision.nextStep
                 const emailNumber = step.emailNumber
 
-                console.log('email number: ' + emailNumber)
 
-
-                //1. send email
-                const result = await sendRecoveryEmail({
-                    to: customer.email,
-                    hostedInvoiceUrl: recoveryCase.hosted_invoice_url,
-                    amountDue: recoveryCase.amount_due / 100,
-                    emailNumber
-                })
+                let result
+                try {
+                    //1. send email
+                    result = await sendRecoveryEmail({
+                        to: customer.email,
+                        hostedInvoiceUrl: recoveryCase.hosted_invoice_url,
+                        amountDue: recoveryCase.amount_due / 100,
+                        emailNumber
+                    })
+                } catch (err) {
+                    await logError({
+                        source: "recoveryProcessor.recoveryProcessor()",
+                        message: "Error sending recovery email",
+                        error: err,
+                        stripeAccountUuid: stripeAccount?.id ?? null,
+                        metadata: { emailResult: result }
+                    })
+                    continue
+                }
                 // console.log("Resend result:", result)
 
                 emailSucceeded = true
@@ -335,9 +357,16 @@ export async function recoveryProcessor() {
             completedSuccessfully = true
 
         } catch (err) {
+            await logError({
+                source: "recoveryProcessor.recoveryProcessor()",
+                message: "Error processing recovery case",
+                error: err,
+                stripeAccountUuid: stripeAccount?.id ?? null,
+                metadata: {recoveryCaseId: recoveryCase?.id, retryInvoiceSuccess: retrySucceeded, emailSuccess: emailSucceeded }
+            })
             console.log('retry successful: ' + retrySucceeded + ' :::: email successful: ' + emailSucceeded)
             console.error("failure:", err)
-            throw err
+            continue
         }
 
         console.log('retry successful: ' + retrySucceeded + ' :::: email successful: ' + emailSucceeded)
@@ -350,31 +379,6 @@ export async function recoveryProcessor() {
         }
     }
 }
-
-// function calculateNextAction(recoveryCase, currentStep) {
-//     const nextStep = currentStep + 1
-//     if (!RECOVERY_PLAN[nextStep]) {
-//         return null
-//     }
-//     let stripeNextPaymentAt = recoveryCase?.stripe_next_payment_at
-
-//     if (stripeNextPaymentAt) {
-//         stripeNextPaymentAt = new Date(stripeNextPaymentAt)
-//     } else {
-//         stripeNextPaymentAt = new Date()
-//     }
-
-//     // let nextAction = new Date()
-//     // nextAction.setHours(nextAction.getHours() + RECOVERY_PLAN[nextStep].delayHours)
-
-//     const earliestRetry = new Date(Date.now() + RECOVERY_PLAN[nextStep].delayHours * 3600000)
-
-//     return stripeNextPaymentAt > earliestRetry
-//         ? stripeNextPaymentAt
-//         : earliestRetry
-
-//     // return nextActionAt
-// }
 
 function calculateNextAction(recoveryCase, currentStep) {
     const nextStep = currentStep + 1
@@ -421,156 +425,6 @@ function getRecoveryUrgencyScore(recoveryCase) {
 //     return { send: true, step: 4 }
 // }
 
-
-// cadence logic
-// async function shouldSendEmail(recoveryCase) {
-//     // const sent = recoveryCase.recovery_email_sent_count
-
-//     // const activeCases = await RecoveryCases.findAll({
-//     //     where: { status: 'active' }
-//     // })
-
-//     if (sent === 1 && hours >= 24) {
-//         return true
-//     }
-
-//     if (sent === 2 && hours >= 72) {
-//         return true
-//     }
-
-//     if (sent === 3 && hours >= 168) {
-//         return true
-//     }
-
-//     if (recoveryCase.recovery_email_sent_count >= 4) {
-//         return false
-//     }
-
-//     return false
-// }
-
-// removed in favor of getNextRecoveryStep()
-// async function shouldSendNextEmail(recoveryCase) {
-//     const lastEmail = await RecoveryCommunications.findOne({
-//         where: {
-//             recovery_case_uuid: recoveryCase.id,
-//             type: 'email',
-//             status: 'sent'
-//         },
-//         order: [['step', 'DESC'], ['sent_at', 'DESC']]
-//     })
-
-//     // No emails sent yet → send step 1
-//     if (!lastEmail) return { shouldSend: true, nextStep: 1 }
-
-//     const nextStep = lastEmail.step + 1
-
-//     console.log('in shouldsendNext, nextStep: ' + nextStep)
-
-//     // stop condition
-//     if (nextStep > 4) {
-//         console.log('nextStep greater than 4')
-//         return { shouldSend: false }
-//     }
-
-//     const hours = hoursSince(lastEmail.sent_at)
-//     const requiredDelay = CADENCE_HOURS[nextStep]
-
-//     if (hours >= requiredDelay) {
-//         return { shouldSend: true, nextStep }
-//     }
-
-//     return { shouldSend: false }
-
-
-// }
-// function shouldSendNextEmail(recoveryCase) {
-//     const sent = recoveryCase.recovery_email_sent_count
-
-//     if (sent >= 4) {
-//         return false
-//     }
-
-//     if (sent === 0) {
-//         return true
-//     }
-
-//     if (!recoveryCase.last_recovery_email_sent_at) {
-//         return true
-//     }
-
-//     const hours = hoursSince(recoveryCase.last_recovery_email_sent_at)
-
-//     if (sent === 1 && hours >= 24) {
-//         return true
-//     }
-
-//     if (sent === 2 && hours >= 72) {
-//         return true
-//     }
-
-//     if (sent === 3 && hours >= 168) {
-//         return true
-//     }
-
-//     return false
-// }
-
-
-// async function getNextRecoveryStep(recoveryCase) {
-
-//     if (recoveryCase.next_action_at > new Date()) {
-//         return {
-//             isDue: false
-//         }
-//     }
-
-//     const lastEmail = await RecoveryCommunications.findOne({
-//         where: {
-//             recovery_case_uuid: recoveryCase.id,
-//             type: 'email',
-//             status: 'sent'
-//         },
-//         order: [['step', 'DESC']]
-//     })
-
-//     // no emails sent before
-//     if (!lastEmail) {
-//         return {
-//             isDue: true,
-//             step: 1,
-//             ...RECOVERY_PLAN[1]
-//         }
-//     }
-
-//     const nextStep = Number(lastEmail.step) + 1
-
-//     console.log('nextStep: ' + nextStep)
-
-//     // workflow done
-//     if (!RECOVERY_PLAN[nextStep]) {
-//         return {
-//             complete: true
-//         }
-//     }
-
-//     // const hoursElapsed = hoursSince(lastEmail.sent_at)
-
-//     // if (hoursElapsed < RECOVERY_PLAN[nextStep].delayHours) {
-//     //     return {
-//     //         isDue: false,
-//     //         complete: false,
-//     //         step: nextStep,
-//     //         hoursRemaining: RECOVERY_PLAN[nextStep].delayHours - hoursElapsed
-//     //     }
-//     // }
-
-//     return {
-//         isDue: true,
-//         step: nextStep,
-//         ...RECOVERY_PLAN[nextStep]
-//     }
-// }
 
 async function getNextRecoveryStep(recoveryCase) {
 

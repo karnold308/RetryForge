@@ -1,5 +1,6 @@
 
 import Stripe from 'stripe'
+import { logError } from '../services/loggerService.js'
 
 
 export const retryStripePayment = async ({
@@ -11,13 +12,7 @@ export const retryStripePayment = async ({
         stripeAccount: stripeAccountId
     })
 
-    // console.log('start retryStripePayment')
-
     try {
-        // const intent = await stripe.paymentIntents.confirm(paymentIntentId, {
-        //     off_session: true
-        // })
-
         const invoice = await stripe.invoices.pay(
             invoiceId, undefined,
             {
@@ -25,15 +20,19 @@ export const retryStripePayment = async ({
             }
         )
 
-        // console.log('invoice 1: ' + invoice)
-
         return {
             success: true,
-            // intent
             invoice
         }
 
     } catch (err) {
+        await logError({
+            source: "stripeRetryService.retryStripePayment()",
+            message: "Error retrying stripe invoice",
+            error: err,
+            metadata: {stripeAccountId: stripeAccountId, invoiceId: invoiceId }
+        })
+        
         return {
             success: false,
             error: err?.raw?.message || err.message

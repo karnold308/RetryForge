@@ -1,8 +1,9 @@
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 import { CustomerSyncService } from './customerSyncService.js'
 import { RecoveryCaseService } from './recoveryCaseService.js'
-import { StripeAccount } from '../models/index.js'
+import { StripeAccount, RecoveryCases } from '../models/index.js'
 import Stripe from 'stripe'
+import { logError } from '../services/loggerService.js'
 
 
 export const importFailedInvoices = async ({ stripeAccount }) => {
@@ -11,8 +12,6 @@ export const importFailedInvoices = async ({ stripeAccount }) => {
     if (stripeAccount.history_sync_status === 'processing') {
         return
     }
-
-    console.log('starting importFailedInvoices')
 
     await stripeAccount.update({
         history_sync_status: 'processing',
@@ -38,11 +37,32 @@ export const importFailedInvoices = async ({ stripeAccount }) => {
                 //     customer: invoice.customer,
                 //     date: new Date(invoice.created * 1000)
                 // })
+
+                const existingCase = await RecoveryCases.findOne({
+                    where: {
+                        stripe_invoice_id: invoice.id
+                    }
+                })
+
+
+                // create new recovery case
+
                 if (shouldImportInvoice(invoice)) {
                     const nextActionAt = calculateInitialRecoveryDate(invoice)
 
                     if (!nextActionAt) {
                         skipped++
+                        continue
+                    }
+
+                    if (existingCase) {
+                        // update existing record
+                        if ('paused' === existingCase.status) {
+                            await existingCase.update({
+                                status: 'active',
+                                updated_at: new Date()
+                            })
+                        }
                         continue
                     }
 
@@ -57,6 +77,10 @@ export const importFailedInvoices = async ({ stripeAccount }) => {
                         eventTime: new Date(invoice.created * 1000),
                         createSnapshot: false
                     })
+
+                    if (!customer) {
+                        return
+                    }
 
                     await RecoveryCaseService.upsertFromInvoice({
                         stripeAccount,
@@ -74,6 +98,7 @@ export const importFailedInvoices = async ({ stripeAccount }) => {
                 } else {
                     skipped++
                 }
+
             }
 
             if (!invoiceList.hasMore) {
@@ -95,7 +120,14 @@ export const importFailedInvoices = async ({ stripeAccount }) => {
         }
 
     } catch (err) {
-        console.error("History sync failed:", err)
+        await logError({
+            source: "historySyncService.importFailedInvoices()",
+            message: 'History sync failed',
+            stripeAccountUuid: stripeAccount?.id ?? null,
+            error: err,
+            metadata: {}
+        })
+
         await stripeAccount.update({
             history_sync_status: 'failed',
             history_sync_error: err.message,
@@ -107,7 +139,6 @@ export const importFailedInvoices = async ({ stripeAccount }) => {
 }
 
 function calculateInitialRecoveryDate(invoice) {
-    console.log('calc init rec date')
     const failedAt = new Date(invoice.created * 1000)
 
     const ageDays = (Date.now() - failedAt.getTime()) / (1000 * 60 * 60 * 24)
@@ -143,9 +174,16 @@ async function getInvoicesPage(connectedAccountId, { limit = 100, startingAfter 
             lastId: response.data.length > 0 ? response.data[response.data.length - 1].id : null
         }
 
-    } catch (error) {
-        console.error('Error fetching paginated invoices:', error.message);
-        throw error
+    } catch (err) {
+        await logError({
+            source: "historySyncService.getInvoicesPage()",
+            message: 'Error fetching paginated invoices',
+            stripeAccountUuid: connectedAccountId ?? null,
+            error: err,
+            metadata: {}
+        })
+        
+        throw err
     }
 }
 

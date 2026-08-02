@@ -3,7 +3,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 import { WebhookEvents } from '../models/index.js'
 const { v4: uuid } = await import('uuid')
 import { StripeWebhookService } from '../services/stripeWebhookService.js'
-
+import asyncHandler from 'express-async-handler'
+import { logError } from '../services/loggerService.js'
 
 // const clientId = process.env.STRIPE_CLIENT_ID
 // const frontEndUrl = process.env.NODE_ENV === 'production' ?
@@ -23,7 +24,7 @@ const trackedEvents = [
 ]
 
 
-const handleStripeWebhook = async (req, res) => {
+const handleStripeWebhook = asyncHandler(async (req, res) => {
     const sig = req.headers["stripe-signature"]
     let processingSucceeded = false
 
@@ -39,7 +40,13 @@ const handleStripeWebhook = async (req, res) => {
             req.body, sig, process.env.STRIPE_WEBHOOK_SECRET
         )
     } catch (err) {
-        console.error("❌ Webhook signature verification failed:", err.message)
+        await logError({
+            source: "stripeWebhookController.handleStripeWebhook()",
+            message: 'Webhook signature verification failed',
+            error: err,
+            metadata: {}
+        })
+
         return res.status(400).send(`Webhook Error: ${err.message}`)
     }
 
@@ -111,7 +118,13 @@ const handleStripeWebhook = async (req, res) => {
 
 
     } catch (err) {
-        console.error("Webhook handler error:", err)
+        await logError({
+            source: "stripeWebhookController.handleStripeWebhook()",
+            message: 'Webhook handler failed',
+            error: err,
+            metadata: {}
+        })
+        
         if (webhookEvent) {
             await ctx.safeUpdateWebhook({
                 processing_error: err.message
@@ -128,10 +141,6 @@ const handleStripeWebhook = async (req, res) => {
             })
         }
     }
-
-
-
-
-}
+})
 
 export { handleStripeWebhook }

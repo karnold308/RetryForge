@@ -56,7 +56,6 @@ router.route('/customers/topopportunities')
     .get(getTopOpportunities)
 
 
-
 // import { recoveryProcessor } from '../../jobs/recoveryProcessor.js'
 // // this is for testing only 
 // router.post('/test-recovery-email', async (req, res) => {
