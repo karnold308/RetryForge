@@ -1,13 +1,16 @@
 import Stripe from 'stripe'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 import { User, StripeAccount, RecoveryCases } from '../models/index.js'
+import asyncHandler from 'express-async-handler'
+import { logError } from '../services/loggerService.js'
 
 const clientId = process.env.STRIPE_CLIENT_ID
 
-const handleAccountDisconnection = async (req, res) => {
+const handleAccountDisconnection = asyncHandler(async (req, res) => {
 
+    let userId 
     try {
-        const userId = req.userId
+        userId = req.userId
 
         const user = await User.findByPk(userId, {
             include: {
@@ -24,25 +27,21 @@ const handleAccountDisconnection = async (req, res) => {
             })
         }
 
-        const response = await stripe.oauth.deauthorize({
-            client_id: clientId,
-            stripe_user_id: stripeAccount.stripe_account_id,
-        })
+        // removed before mvp, as disconneccting/deauthorizing an account usually prevents
+        // it from being reconnected due to v2 OAUTH rules by Stripe
+        // const response = await stripe.oauth.deauthorize({
+        //     client_id: clientId,
+        //     stripe_user_id: stripeAccount.stripe_account_id,
+        // })
 
         await stripeAccount.update({
             connected: false,
-            disconnected_at: new Date(),
-            stripe_account_id: null,
-            access_token_encrypted: null,
-            refresh_token_encrypted: null,
-            stripe_email: null,
-            charges_enabled: false,
-            payouts_enabled: false
+            disconnected_at: new Date()
         })
 
         await RecoveryCases.update(
             {
-                status: "cancelled",
+                status: "paused",
                 next_action_at: null,
                 updated_at: new Date()
             },
@@ -59,13 +58,20 @@ const handleAccountDisconnection = async (req, res) => {
         })
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "disconnectController.handleAccountDisconnection()",
+            message: 'Failed to disconnect Stripe',
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
+
         return res.status(500).json({
             message: "Failed to disconnect Stripe"
         })
     }
 
-}
+})
 
 
 

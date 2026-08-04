@@ -1,4 +1,5 @@
 import sequelizeConfig from "./dbConfig.js"
+import { logError } from '../services/loggerService.js'
 
 let connected = false
 
@@ -9,9 +10,17 @@ export async function connectDB() {
         await sequelizeConfig.authenticate()
         connected = true
         console.log("Database connected")
-    } catch(err) {
+    } catch (err) {
         connected = false
-        console.error("Database connection failed", err)
+        
+        await logError({
+            source: "dbConnect",
+            message: "database cannot connect",
+            error: err,
+            metadata: {
+                
+            }
+        })
         throw err
     }
 }

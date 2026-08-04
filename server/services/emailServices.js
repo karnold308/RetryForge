@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
+import { logError } from '../services/loggerService.js'
 
 export const sendRecoveryEmail = async ({
     to,
@@ -13,7 +14,7 @@ export const sendRecoveryEmail = async ({
 
     switch (emailNumber) {
         case 1:
-            emailHeader = 'Payment Failed'
+            emailHeader = 'Payment attempt unsuccessful'
             break
         case 2:
             emailHeader = 'Reminder'
@@ -35,11 +36,13 @@ export const sendRecoveryEmail = async ({
 
     // console.log('email header: ' + emailHeader)
 
-    return await resend.emails.send({
-        from: 'RetryForge <recoveries@notifications.retryforge.com>',
-        to,
-        subject: 'Payment issue with your Stripe subscription',
-        html: `
+    try {
+        return await resend.emails.send({
+            from: 'RetryForge <recoveries@notifications.retryforge.com>',
+            to,
+            subject: 'Action needed for your subscription payment',
+            replyTo: 'support@retryforge.com',
+            html: `
             <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
             <html>
                 <head></head>
@@ -57,14 +60,32 @@ export const sendRecoveryEmail = async ({
                     <p>Update your payment method:</p>
                     <p>
                         <a href="${hostedInvoiceUrl}">
-                            Pay Invoice
+                            Review payment details
                         </a>
+                    </p>
+                    <hr>
+                    <p>
+                        This email was sent by RetryForge on behalf of your subscription provider.
+                    </p>
+                    <p>
+                        RetryForge helps businesses recover failed subscription payments.
                     </p>
                 </body>
 
             </html>
         `
-    })
+        })
+
+    } catch (err) {
+        await logError({
+            source: "emailServices.sendRecoveryEmail()",
+            message: "Error sending recovery email",
+            error: err,
+            metadata: { emailTo: to, emailNumber: emailNumber, hostedInvoiceUrl: hostedInvoiceUrl }
+        })
+
+        throw err
+    }
 }
 
 
@@ -76,11 +97,13 @@ export const sendEmailVerification = async ({
 
 
     // console.log('in sendEmailVerification******************* verifyEmailUrl: ' + verifyEmailUrl)
-    return await resend.emails.send({
-        from: 'RetryForge <welcome@notifications.retryforge.com>',
-        to,
-        subject: 'Verify your email',
-        html: `
+    try {
+        return await resend.emails.send({
+            from: 'RetryForge <welcome@notifications.retryforge.com>',
+            to,
+            subject: 'Verify your email',
+            replyTo: 'support@retryforge.com',
+            html: `
             <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
             <html>
                 <head></head>
@@ -97,10 +120,22 @@ export const sendEmailVerification = async ({
                     <p>
                         This link expires in 24 hours.
                     </p>
+                    <hr>
+                    <p>
+                        RetryForge helps businesses recover failed subscription payments.
+                    </p>
                 </body>
             </html>
         `
-    })
+        })
+    } catch (err) {
+        await logError({
+            source: "emailServices.sendEmailVerification()",
+            message: "Error sending email verification email",
+            error: err,
+            metadata: { emailTo: to, verifyEmailUrl: verifyEmailUrl }
+        })
+    }
 }
 
 
@@ -110,11 +145,13 @@ export const sendForgotPasswordEmail = async ({
     passwordResetUrl
 }) => {
 
-    return await resend.emails.send({
-        from: 'RetryForge <password-reset@notifications.retryforge.com>',
-        to,
-        subject: 'Reset your RetryForge password',
-        html: `
+    try {
+        return await resend.emails.send({
+            from: 'RetryForge <password-reset@notifications.retryforge.com>',
+            to,
+            subject: 'Reset your RetryForge password',
+            replyTo: 'support@retryforge.com',
+            html: `
             <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
             <html>
                 <head></head>
@@ -131,8 +168,20 @@ export const sendForgotPasswordEmail = async ({
                     <p>
                         This link expires in 1 hour.
                     </p>
+                    <hr>
+                    <p>
+                    RetryForge helps businesses recover failed subscription payments.
+                    </p>
                 </body>
             </html>
         `
-    })
+        })
+    } catch (err) {
+        await logError({
+            source: "emailServices.sendForgotPasswordEmail()",
+            message: "Error sending forgot password email",
+            error: err,
+            metadata: { emailTo: to, passwordResetUrl: passwordResetUrl }
+        })
+    }
 }

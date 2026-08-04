@@ -1,11 +1,12 @@
 import Stripe from 'stripe'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 import { User, StripeAccount } from '../models/index.js'
-
+import asyncHandler from 'express-async-handler'
 const clientId = process.env.STRIPE_CLIENT_ID
+import { logError } from '../services/loggerService.js'
 
 
-const handleAccountRefresh = async (req, res) => {
+const handleAccountRefresh = asyncHandler(async (req, res) => {
 
     try {
         const userId = req.userId
@@ -36,12 +37,19 @@ const handleAccountRefresh = async (req, res) => {
         })
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "meController.handleChangePassword()",
+            message: 'Issue when changing password',
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
+        
         return res.status(500).json({
             message: "Failed to refresh Stripe"
         })
     }
 
-}
+})
 
 export { handleAccountRefresh }

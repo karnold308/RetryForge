@@ -1,6 +1,7 @@
 import { recoveryProcessor } from '../jobs/recoveryProcessor.js'
+import asyncHandler from 'express-async-handler'
 
-const handleRecoveryProcessor = async (req, res) => {
+const handleRecoveryProcessor = asyncHandler(async (req, res) => {
 
     try {
         await recoveryProcessor()
@@ -20,6 +21,6 @@ const handleRecoveryProcessor = async (req, res) => {
 
 
 
-}
+})
 
 export { handleRecoveryProcessor }

@@ -1,10 +1,13 @@
 
 import { User, StripeAccount } from '../models/index.js'
 import bcrypt from 'bcrypt'
+import asyncHandler from 'express-async-handler'
+import { logError } from '../services/loggerService.js'
 
-const getMe = async (req, res) => {
+const getMe = asyncHandler(async(req, res) => {
+    let userId
     try {
-        const userId = req.userId
+        userId = req.userId
 
         const user = await User.findByPk(userId, {
             include: [
@@ -52,15 +55,21 @@ const getMe = async (req, res) => {
         });
 
     } catch (err) {
-        console.error(err)
+        await logError({
+            source: "meController.getMe()",
+            message: 'Server error',
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
 
         return res.status(500).json({
             message: 'Server error'
         })
     }
-}
+})
 
-const handleChangePassword = async (req, res) => {
+const handleChangePassword = asyncHandler(async (req, res) => {
     const userId = req.userId
     const { currentPassword, newPassword } = req.body
 
@@ -68,41 +77,57 @@ const handleChangePassword = async (req, res) => {
 
     if (!user) return res.sendStatus(401)
 
-    if (currentPassword === newPassword) {
-        return res.status(400).json({
-            success: false,
-            code: "SAME_PASSWORD",
-            message: "Your current and new password are the same."
+    try {
+
+
+        if (currentPassword === newPassword) {
+            return res.status(400).json({
+                success: false,
+                code: "SAME_PASSWORD",
+                message: "Your current and new password are the same."
+            })
+        }
+
+        // evaluate password
+        const match = await bcrypt.compare(currentPassword, user.password_hash)
+
+        // current password is incorrect
+        if (!match) {
+            return res.status(400).json({
+                success: false,
+                code: "CURRENT_PASSWORD_WRONG",
+                message: "Your existing password is incorrect."
+            })
+        }
+
+        // hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+        // update user record
+        await user.update({
+            refresh_token: null,
+            password_hash: hashedPassword,
+            updated_at: new Date()
+        })
+
+        return res.status(200).json({
+            success: true,
+            message: "Password updated successfully."
+        })
+    } catch (err) {
+        await logError({
+            source: "meController.handleChangePassword()",
+            message: 'Issue when changing password',
+            error: err,
+            userId: userId ?? null,
+            metadata: {}
+        })
+
+        return res.status(500).json({
+            message: 'Server error'
         })
     }
 
-    // evaluate password
-    const match = await bcrypt.compare(currentPassword, user.password_hash)
-
-    // current password is incorrect
-    if (!match) {
-        return res.status(400).json({
-            success: false,
-            code: "CURRENT_PASSWORD_WRONG",
-            message: "Your existing password is incorrect."
-        })
-    }
-
-    // hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10)
-
-    // update user record
-    await user.update({
-        refresh_token: null,
-        password_hash: hashedPassword,
-        updated_at: new Date()
-    })
-
-    return res.status(200).json({
-        success: true,
-        message: "Password updated successfully."
-    })
-
-}
+})
 
 export { getMe, handleChangePassword }
