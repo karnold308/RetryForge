@@ -39,7 +39,7 @@ const handleLogin = asyncHandler(async (req, res) => {
                     "roles": roles
                 },
                 process.env.ACCESS_TOKEN_SECRET,
-                { expiresIn: '2m' } // TODO: make this longer in prod, maybe 15 minutes
+                { expiresIn: '15m' } // TODO: make this longer in prod, maybe 15 minutes
             )
 
             const refreshToken = jwt.sign(
@@ -49,7 +49,7 @@ const handleLogin = asyncHandler(async (req, res) => {
                     "roles": foundUser.roles
                 },
                 process.env.REFRESH_TOKEN_SECRET,
-                { expiresIn: '3m' }
+                { expiresIn: '1d' }
             )
             // saving refreshToken with current user
             foundUser.refresh_token = refreshToken
