@@ -49,7 +49,7 @@ const handleLogin = asyncHandler(async (req, res) => {
                     "roles": foundUser.roles
                 },
                 process.env.REFRESH_TOKEN_SECRET,
-                { expiresIn: '3d' }
+                { expiresIn: '3m' }
             )
             // saving refreshToken with current user
             foundUser.refresh_token = refreshToken
