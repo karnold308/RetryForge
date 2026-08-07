@@ -56,7 +56,6 @@ const upsertFromInvoice = async ({
                 history_imported_at: historyImportedAt
             }
         })
-        console.log('recoveryCaseService recoveryId: ' + recoveryCase?.id)
 
         if (!created) {
             // coming from webhook if historyImportedAt = null

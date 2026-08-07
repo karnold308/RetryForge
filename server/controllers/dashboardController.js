@@ -570,7 +570,7 @@ const getDashboardSystemStatus = asyncHandler(async (req, res) => {
         }
 
         res.json({
-            stripeConnected: stripeAccount.connected,
+            stripeConnected: stripeAccount?.connected ?? true,
             webhookHealthy,
             lastWebhookAt: webhookEvent?.received_at,
             schedulerHealthy,
