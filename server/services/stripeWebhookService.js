@@ -81,6 +81,11 @@ const resolveStripeContext = async (event, customerId, ctx) => {
 
     }
 
+    if (!stripeAccount) {
+        throw new Error(
+            `Unable to resolve Stripe account for ${event.type}`
+        )
+    }
 
     const customerRecord = customerId
         ? await ensureStripeCustomer(
@@ -471,9 +476,9 @@ const handleInvoicePaymentFailed = async (event, ctx) => {
         invoiceCreatedAt: new Date(invoice.created * 1000),
         historyImportedAt: null
     })
-    
+
     if (!recoveryCase) {
-        return 
+        return
     }
 
     if (created) {
