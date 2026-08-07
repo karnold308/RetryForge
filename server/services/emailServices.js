@@ -49,7 +49,7 @@ export const sendRecoveryEmail = async ({
                 <body>
                     <h2>${emailHeader}</h2>
                     <p>
-                        We were unable to process your recent payment.
+                        We were unable to process your recent payment. Please make sure there is a default payment method.
                     </p>
                     <p>
                         ${emailBodyText}
@@ -135,6 +135,8 @@ export const sendEmailVerification = async ({
             error: err,
             metadata: { emailTo: to, verifyEmailUrl: verifyEmailUrl }
         })
+
+        throw err
     }
 }
 
@@ -183,5 +185,7 @@ export const sendForgotPasswordEmail = async ({
             error: err,
             metadata: { emailTo: to, passwordResetUrl: passwordResetUrl }
         })
+
+        throw err
     }
 }
