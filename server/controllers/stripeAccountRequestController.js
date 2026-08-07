@@ -36,7 +36,7 @@ const handleStripeConnection = ("/api/stripe/connect", (req, res) => {
             url: stripeUrl
         })
     } catch (err) {
-        console.log(userId)
+        // console.log(userId)
         logError({
             source: "stripeAccountRequestController.handleStripeConnection()",
             message: 'Failed to take user to connect stripe page',

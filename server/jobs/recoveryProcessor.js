@@ -231,9 +231,11 @@ export async function recoveryProcessor() {
                 stripeAccount = await StripeAccount.findByPk(
                     recoveryCase.stripe_account_uuid
                 )
-                try {
 
-                    const result = await retryStripePayment({
+                let result
+                
+                try {
+                    result = await retryStripePayment({
                         stripeAccountId: stripeAccount.stripe_account_id,
                         invoiceId: recoveryCase.stripe_invoice_id
                     })
