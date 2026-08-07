@@ -157,6 +157,7 @@ export async function recoveryProcessor() {
                         decline_code: declineCode,
                         payment_method_type: paymentMethodType,
                         stripe_payment_intent_id: paymentIntentId,
+                        updated_at: new Date()
                     })
                 }
             }
@@ -182,7 +183,8 @@ export async function recoveryProcessor() {
             if (stripeRetry.getTime() - Date.now() <= retryBufferHours && stripeRetry > new Date()) {
                 console.log("Stripe retry imminent. Skipping RetryForge.")
                 await recoveryCase.update({
-                    next_action_at: new Date(Date.now() + retryBufferHours)
+                    next_action_at: new Date(Date.now() + retryBufferHours),
+                    updated_at: new Date()
                 })
 
                 continue
@@ -196,7 +198,8 @@ export async function recoveryProcessor() {
         try {
             if (step.complete) {
                 await recoveryCase.update({
-                    next_action_at: null
+                    next_action_at: null,
+                    updated_at: new Date()
                 })
                 continue
             }
@@ -233,7 +236,7 @@ export async function recoveryProcessor() {
                 )
 
                 let result
-                
+
                 try {
                     result = await retryStripePayment({
                         stripeAccountId: stripeAccount.stripe_account_id,
@@ -277,7 +280,8 @@ export async function recoveryProcessor() {
                 // update case summary after charge retry
                 await recoveryCase.update({
                     last_retry_attempt_at: new Date(),
-                    last_retry_status: result.success ? 'success' : 'failed'
+                    last_retry_status: result.success ? 'success' : 'failed',
+                    updated_at: new Date()
                 })
             }
 
@@ -329,12 +333,14 @@ export async function recoveryProcessor() {
 
                 await recoveryCase.update({
                     last_recovery_email_sent_at: new Date(),
-                    last_notified_at: new Date()
+                    last_notified_at: new Date(),
+                    updated_at: new Date()
                 })
 
                 if (1 === emailNumber) {
                     await recoveryCase.update({
                         first_notified_at: new Date(),
+                        updated_at: new Date()
                     })
                 }
 
@@ -352,7 +358,8 @@ export async function recoveryProcessor() {
                 // update case summary after email sent
                 await recoveryCase.update({
                     last_email_step: emailNumber,
-                    last_contacted_at: new Date()
+                    last_contacted_at: new Date(),
+                    updated_at: new Date()
                 })
             }
 
@@ -376,7 +383,8 @@ export async function recoveryProcessor() {
         if (completedSuccessfully) {
             await recoveryCase.update({
                 next_action_at: calculateNextAction(recoveryCase, step.step),
-                workflow_step: step.step
+                workflow_step: step.step,
+                updated_at: new Date()
             })
         }
     }

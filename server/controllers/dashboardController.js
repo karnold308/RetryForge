@@ -711,7 +711,8 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
 
         await recoveryCase.update({
             last_retry_attempt_at: new Date(),
-            last_payment_attempt_at: new Date()
+            last_payment_attempt_at: new Date(),
+            updated_at: new Date()
         })
 
         // OPTION 1: retry invoice payment
@@ -763,7 +764,8 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
         if (result.success) {
             await recoveryCase.update({
                 last_retry_status: 'success',
-                recovery_source: 'retryforge_manual'
+                recovery_source: 'retryforge_manual',
+                updated_at: new Date()
             })
         } else {
             const retryDelay = getRetryDelay(recoveryCase.recovery_attempt_count)
@@ -780,7 +782,8 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
                 last_retry_status: 'failed',
                 last_failed_event_at: new Date(),
                 last_failure_at: new Date(),
-                next_action_at: retryDelay
+                next_action_at: retryDelay,
+                updated_at: new Date()
             })
         }
 
