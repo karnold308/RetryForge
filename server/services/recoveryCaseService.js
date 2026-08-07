@@ -73,7 +73,8 @@ const upsertFromInvoice = async ({
                     failure_message: failureMessage,
                     currency: invoice.currency,
                     next_action_at: invoice?.next_payment_attempt ? new Date(invoice?.next_payment_attempt * 1000) : null,
-                    stripe_next_payment_at: invoice?.next_payment_attempt ? new Date(invoice?.next_payment_attempt * 1000) : null
+                    stripe_next_payment_at: invoice?.next_payment_attempt ? new Date(invoice?.next_payment_attempt * 1000) : null,
+                    updated_at: new Date()
                 })
             } else {
                 // coming from history sync
@@ -86,7 +87,8 @@ const upsertFromInvoice = async ({
                     failure_message: failureMessage,
                     currency: invoice.currency,
                     history_imported_at: historyImportedAt,
-                    stripe_next_payment_at: invoice?.next_payment_attempt ? new Date(invoice?.next_payment_attempt * 1000) : null
+                    stripe_next_payment_at: invoice?.next_payment_attempt ? new Date(invoice?.next_payment_attempt * 1000) : null,
+                    updated_at: new Date()
                 })
             }
         }
