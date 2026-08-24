@@ -204,7 +204,7 @@ export async function recoveryProcessor() {
                 continue
             }
 
-            
+
 
             if (!step.isDue) {
                 continue
@@ -229,6 +229,30 @@ export async function recoveryProcessor() {
                 if (!recoveryCase.stripe_invoice_id) {
                     console.log("No inoice Id — skipping retry")
                     continue
+                }
+
+                // checking failure code for 'hard' decline codes
+                if (null !== recoveryCase.failure_code) {
+                    const fCode = recoveryCase.failure_code.toLowerCase()
+                    if (fCode.includes("honor") 
+                        || fCode.includes("stolen") 
+                        || fCode.includes("fraudulent") 
+                        || fCode.includes("lost")) {
+                        console.log('recovery case: ' + recoveryCase.id + ' has this error: ' + fCode)
+                        continue
+                    }
+                }
+
+                // checking failure message for 'hard' decline codes
+                if (null !== recoveryCase.failure_message) {
+                    const fMessage = recoveryCase.failure_message.toLowerCase()
+                    if (fMessage.includes("honor") 
+                        || fMessage.includes("stolen") 
+                        || fMessage.includes("fraudulent")
+                        || fMessage.includes("lost")) {
+                        console.log('recovery case: ' + recoveryCase.id + ' has this error: ' + fMessage)
+                        continue
+                    }
                 }
 
                 stripeAccount = await StripeAccount.findByPk(
@@ -371,7 +395,7 @@ export async function recoveryProcessor() {
                 message: "Error processing recovery case",
                 error: err,
                 stripeAccountUuid: stripeAccount?.id ?? null,
-                metadata: {recoveryCaseId: recoveryCase?.id, retryInvoiceSuccess: retrySucceeded, emailSuccess: emailSucceeded }
+                metadata: { recoveryCaseId: recoveryCase?.id, retryInvoiceSuccess: retrySucceeded, emailSuccess: emailSucceeded }
             })
             console.log('retry successful: ' + retrySucceeded + ' :::: email successful: ' + emailSucceeded)
             console.error("failure:", err)
