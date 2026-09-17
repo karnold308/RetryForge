@@ -9,6 +9,7 @@ const clientId = process.env.STRIPE_CLIENT_ID
 const handleAccountDisconnection = asyncHandler(async (req, res) => {
 
     let userId 
+    let stripeAccount
     try {
         userId = req.userId
 
@@ -19,7 +20,7 @@ const handleAccountDisconnection = asyncHandler(async (req, res) => {
             }
         })
 
-        const stripeAccount = user?.stripeAccount
+        stripeAccount = user?.stripeAccount
 
         if (!stripeAccount || !stripeAccount.connected) {
             return res.status(400).json({
@@ -62,6 +63,7 @@ const handleAccountDisconnection = asyncHandler(async (req, res) => {
             source: "disconnectController.handleAccountDisconnection()",
             message: 'Failed to disconnect Stripe',
             error: err,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             userId: userId ?? null,
             metadata: {}
         })

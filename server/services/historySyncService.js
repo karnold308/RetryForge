@@ -1,4 +1,5 @@
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+const stripeTestAcct = new Stripe(process.env.STRIPE_SECRET_KEY_TEST)
 import { CustomerSyncService } from './customerSyncService.js'
 import { RecoveryCaseService } from './recoveryCaseService.js'
 import { StripeAccount, RecoveryCases } from '../models/index.js'
@@ -25,9 +26,13 @@ export const importFailedInvoices = async ({ stripeAccount }) => {
     let imported = 0
     let skipped = 0
 
+    const user = await User.findOne({
+        where: { id: stripeAccount.user_id }
+    })
+
     try {
         while (hasMore) {
-            let invoiceList = await getInvoicesPage(stripeAccountId, { startingAfter: lastId })
+            let invoiceList = await getInvoicesPage(stripeAccountId, { startingAfter: lastId }, user)
 
             for (const invoice of invoiceList.data) {
                 // console.log({
@@ -155,7 +160,7 @@ function calculateInitialRecoveryDate(invoice) {
 }
 
 // stripe invoice pagination, using limit and startingAfter using id of last item
-async function getInvoicesPage(connectedAccountId, { limit = 100, startingAfter = null, status = 'open' } = {}) {
+async function getInvoicesPage(connectedAccountId, { limit = 100, startingAfter = null, status = 'open' } = {}, user) {
     try {
         const params = { limit, status }
 
@@ -163,10 +168,23 @@ async function getInvoicesPage(connectedAccountId, { limit = 100, startingAfter 
             params.starting_after = startingAfter;
         }
 
-        const response = await stripe.invoices.list(
-            params,
-            { stripeAccount: connectedAccountId }
-        )
+        if (!user) {
+            return
+        }
+        let response
+
+        // check for tester account
+        if (user.roles.includes(5555)) {
+            response = await stripeTestAcct.invoices.list(
+                params,
+                { stripeAccount: connectedAccountId }
+            )
+        } else {
+            response = await stripe.invoices.list(
+                params,
+                { stripeAccount: connectedAccountId }
+            )
+        }
 
         return {
             data: response.data,
@@ -182,7 +200,7 @@ async function getInvoicesPage(connectedAccountId, { limit = 100, startingAfter 
             error: err,
             metadata: {}
         })
-        
+
         throw err
     }
 }

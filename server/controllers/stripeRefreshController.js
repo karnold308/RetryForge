@@ -8,8 +8,10 @@ import { logError } from '../services/loggerService.js'
 
 const handleAccountRefresh = asyncHandler(async (req, res) => {
 
+    let userId
+    let stripeAccount
     try {
-        const userId = req.userId
+        userId = req.userId
 
         const user = await User.findByPk(userId, {
             include: {
@@ -18,7 +20,7 @@ const handleAccountRefresh = asyncHandler(async (req, res) => {
             }
         })
 
-        const stripeAccount = user?.stripeAccount
+        stripeAccount = user?.stripeAccount
 
         const account = await stripe.accounts.retrieve(
             stripeAccount.stripe_account_id
@@ -40,6 +42,7 @@ const handleAccountRefresh = asyncHandler(async (req, res) => {
         await logError({
             source: "meController.handleChangePassword()",
             message: 'Issue when changing password',
+            stripeAccountUuid: stripeAccount?.id ?? null,
             error: err,
             userId: userId ?? null,
             metadata: {}

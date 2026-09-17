@@ -4,8 +4,10 @@ import bcrypt from 'bcrypt'
 import asyncHandler from 'express-async-handler'
 import { logError } from '../services/loggerService.js'
 
-const getMe = asyncHandler(async(req, res) => {
+const getMe = asyncHandler(async (req, res) => {
     let userId
+    let stripeAccount
+
     try {
         userId = req.userId
 
@@ -24,7 +26,7 @@ const getMe = asyncHandler(async(req, res) => {
             })
         }
 
-        const stripeAccount = await StripeAccount.findOne({
+        stripeAccount = await StripeAccount.findOne({
             where: {
                 user_id: userId
             }
@@ -59,6 +61,7 @@ const getMe = asyncHandler(async(req, res) => {
             source: "meController.getMe()",
             message: 'Server error',
             error: err,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             userId: userId ?? null,
             metadata: {}
         })
@@ -77,9 +80,13 @@ const handleChangePassword = asyncHandler(async (req, res) => {
 
     if (!user) return res.sendStatus(401)
 
+    let stripeAccount = await StripeAccount.findOne({
+        where: {
+            user_id: userId
+        }
+    })
+
     try {
-
-
         if (currentPassword === newPassword) {
             return res.status(400).json({
                 success: false,
@@ -118,6 +125,7 @@ const handleChangePassword = asyncHandler(async (req, res) => {
         await logError({
             source: "meController.handleChangePassword()",
             message: 'Issue when changing password',
+            stripeAccountUuid: stripeAccount?.id ?? null,
             error: err,
             userId: userId ?? null,
             metadata: {}

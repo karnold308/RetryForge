@@ -3,7 +3,8 @@ import {
     RecoveryCases, StripeAccountCustomers,
     StripeAccount, RecoveryStrategyStats,
     WebhookEvents, CronJobAudit,
-    RecoveryCommunications
+    RecoveryCommunications,
+    User
 } from '../models/index.js'
 import asyncHandler from 'express-async-handler'
 import { Sequelize, Op, fn, col } from 'sequelize'
@@ -12,6 +13,8 @@ const { v4: uuid } = await import('uuid')
 import { logError } from '../services/loggerService.js'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+
+const stripeTestAcct = new Stripe(process.env.STRIPE_SECRET_KEY_TEST)
 
 const getDashboard = asyncHandler(async (req, res) => {
     console.log('in getDashboard')
@@ -28,6 +31,8 @@ const getDashboard = asyncHandler(async (req, res) => {
 
 const getDashboardOverview = asyncHandler(async (req, res) => {
     let userId
+    let stripeAccount 
+
     try {
         userId = req.userId
 
@@ -35,6 +40,10 @@ const getDashboardOverview = asyncHandler(async (req, res) => {
             where: {
                 user_id: userId, status: 'active'
             }
+        })
+
+        stripeAccount = await StripeAccount.findOne({
+            where: {user_id: userId}
         })
 
 
@@ -146,6 +155,7 @@ const getDashboardOverview = asyncHandler(async (req, res) => {
             source: "dashboardController.getDashboardOverview()",
             message: 'Failed to load overview',
             error: err,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             userId: userId ?? null,
             metadata: {}
         })
@@ -159,8 +169,14 @@ const getDashboardOverview = asyncHandler(async (req, res) => {
 
 const getDashboardRecoveries = asyncHandler(async (req, res) => {
     let userId
+    let stripeAccount 
+
     try {
         userId = req.userId
+
+        stripeAccount = await StripeAccount.findOne({
+            where: {user_id: userId}
+        })
 
         const cases = await RecoveryCases.findAll({
             where: {
@@ -196,6 +212,7 @@ const getDashboardRecoveries = asyncHandler(async (req, res) => {
             source: "dashboardController.getDashboardRecoveries()",
             message: 'Failed to get recoveries',
             error: err,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             userId: userId ?? null,
             metadata: {}
         })
@@ -290,9 +307,19 @@ const getDashboardCustomers = asyncHandler(async (req, res) => {
 
 const getDashboardAtRiskCustomers = asyncHandler(async (req, res) => {
     let userId
+    let stripeAccount
 
     try {
         userId = req.userId
+        stripeAccount = await StripeAccount.findOne({
+            where: {
+                user_id: req.userId
+            }
+        })
+
+        if (!stripeAccount) {
+            return res.json([])
+        }
 
         const customers = await StripeAccountCustomers.findAll({
             where: {
@@ -336,6 +363,7 @@ const getDashboardAtRiskCustomers = asyncHandler(async (req, res) => {
             message: 'Failed to fetch at-risk customers',
             error: err,
             userId: userId ?? null,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             metadata: {}
         })
 
@@ -345,8 +373,20 @@ const getDashboardAtRiskCustomers = asyncHandler(async (req, res) => {
 
 const getDashboardAnalytics = asyncHandler(async (req, res) => {
     let userId = req.userId
+    let stripeAccount
 
     try {
+
+        stripeAccount = await StripeAccount.findOne({
+            where: {
+                user_id: userId
+            }
+        })
+
+        if (!stripeAccount) {
+            return res.json([])
+        }
+
         const totalFailures = await RecoveryCases.count({
             where: { user_id: userId }
         })
@@ -408,6 +448,7 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
             source: "dashboardController.getDashboardAnalytics()",
             message: 'Failed to load analytics',
             error: err,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             userId: userId ?? null,
             metadata: {}
         })
@@ -419,7 +460,10 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
 
 const getDashboardRecoveryDetail = asyncHandler(async (req, res) => {
     let userId
+    let stripeAccount
+
     try {
+        
         const recoveryCase =
             await RecoveryCases.findOne({
                 where: {
@@ -435,6 +479,16 @@ const getDashboardRecoveryDetail = asyncHandler(async (req, res) => {
                 })
         }
         userId = recoveryCase.user_id
+
+        stripeAccount = await StripeAccount.findOne({
+            where: {
+                user_id: userId
+            }
+        })
+
+        if (!stripeAccount) {
+            return res.json([])
+        }
 
         const customer =
             await StripeAccountCustomers.findOne({
@@ -467,6 +521,7 @@ const getDashboardRecoveryDetail = asyncHandler(async (req, res) => {
             source: "dashboardController.getDashboardRecoveryDetail()",
             message: 'Failed to load recovery detail for: ' + req?.params?.id,
             error: err,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             userId: userId ?? null,
             metadata: {}
         })
@@ -479,9 +534,20 @@ const getDashboardRecoveryDetail = asyncHandler(async (req, res) => {
 
 const getDashboardRecentRecoveries = asyncHandler(async (req, res) => {
     let userId
+    let stripeAccount
 
     try {
         userId = req.userId
+
+        stripeAccount = await StripeAccount.findOne({
+            where: {
+                user_id: userId
+            }
+        })
+
+        if (!stripeAccount) {
+            return res.json([])
+        }
 
         const cases = await RecoveryCases.findAll({
             where: {
@@ -516,6 +582,7 @@ const getDashboardRecentRecoveries = asyncHandler(async (req, res) => {
             source: "dashboardController.getDashboardRecentRecoveries()",
             message: 'Failed to fetch recent recoveries',
             error: err,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             userId: userId ?? null,
             metadata: {}
         })
@@ -543,12 +610,18 @@ const getRecoveryCaseTimeline = asyncHandler(async (req, res) => {
 
 const getDashboardSystemStatus = asyncHandler(async (req, res) => {
     let userId = req.userId
+    let stripeAccount
 
     try {
-
-        const stripeAccount = await StripeAccount.findOne({
-            where: { user_id: userId }
+        stripeAccount = await StripeAccount.findOne({
+            where: {
+                user_id: userId
+            }
         })
+
+        if (!stripeAccount) {
+            return res.json([])
+        }
 
         const webhookEvent = await WebhookEvents.findOne({
             order: [["received_at", "DESC"]]
@@ -582,6 +655,7 @@ const getDashboardSystemStatus = asyncHandler(async (req, res) => {
             source: "dashboardController.getDashboardSystemStatus()",
             message: 'Failed to fetch system status',
             error: err,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             userId: userId ?? null,
             metadata: {}
         })
@@ -592,8 +666,19 @@ const getDashboardSystemStatus = asyncHandler(async (req, res) => {
 
 const getTopOpportunities = asyncHandler(async (req, res) => {
     const userId = req.userId
+    let stripeAccount
 
     try {
+        stripeAccount = await StripeAccount.findOne({
+            where: {
+                user_id: userId
+            }
+        })
+
+        if (!stripeAccount) {
+            return res.json([])
+        }
+
         const customers = await StripeAccountCustomers.findAll({
             where: { user_id: userId },
             include: [{
@@ -665,6 +750,7 @@ const getTopOpportunities = asyncHandler(async (req, res) => {
             source: "dashboardController.getTopOpportunities()",
             message: 'Failed to get top opportunities',
             error: err,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             userId: userId ?? null,
             metadata: {}
         })
@@ -688,11 +774,19 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
         }
     })
 
+    let user = await User.findOne({
+        where: { id: userId }
+    })
+
+    if (!user) {
+        return res.status(400).json({ error: 'No user found. Stripe not connected' })
+    }
+
     if (!recoveryCase) {
         return res.status(404).json({ error: 'Recovery case not found' })
     }
 
-    const stripeAccount = await StripeAccount.findOne({
+    let stripeAccount = await StripeAccount.findOne({
         where: { user_id: userId }
     })
 
@@ -720,9 +814,19 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
         //     recovery.stripe_invoice_id, { stripeAccount: stripeAccount.stripe_account_id }
         // )
 
-        const invoiceBefore = await stripe.invoices.retrieve(recoveryCase.stripe_invoice_id, undefined, {
-            stripeAccount: stripeAccount.stripe_account_id
-        })
+        let invoiceBefore
+
+        // check for tester account
+        if (user.roles.includes(5555)) {
+            invoiceBefore = await stripeTestAcct.invoices.retrieve(recoveryCase.stripe_invoice_id, undefined, {
+                stripeAccount: stripeAccount.stripe_account_id
+            })
+        } else {
+            invoiceBefore = await stripe.invoices.retrieve(recoveryCase.stripe_invoice_id, undefined, {
+                stripeAccount: stripeAccount.stripe_account_id
+            })
+        }
+
 
         if (invoiceBefore.status === "paid") {
             return res.json({
@@ -745,13 +849,29 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
             invoiceId: recoveryCase.stripe_invoice_id
         })
 
-        const invoice = await stripe.invoices.retrieve(recoveryCase.stripe_invoice_id, undefined, {
-            stripeAccount: stripeAccount.stripe_account_id
-        })
-        const paymentIntent =
-            typeof invoice.payment_intent === "string"
-                ? await stripe.paymentIntents.retrieve(invoice.payment_intent)
-                : invoice.payment_intent
+        let invoice
+        let paymentIntent
+
+        // check for tester account
+        if (user.roles.includes(5555)) {
+            invoice = await stripeTestAcct.invoices.retrieve(recoveryCase.stripe_invoice_id, undefined, {
+                stripeAccount: stripeAccount.stripe_account_id
+            })
+
+            paymentIntent =
+                typeof invoice.payment_intent === "string"
+                    ? await stripeTestAcct.paymentIntents.retrieve(invoice.payment_intent)
+                    : invoice.payment_intent
+        } else {
+            invoice = await stripe.invoices.retrieve(recoveryCase.stripe_invoice_id, undefined, {
+                stripeAccount: stripeAccount.stripe_account_id
+            })
+
+            paymentIntent =
+                typeof invoice.payment_intent === "string"
+                    ? await stripe.paymentIntents.retrieve(invoice.payment_intent)
+                    : invoice.payment_intent
+        }
 
         const paymentStatus = paymentIntent?.status
 
@@ -818,6 +938,7 @@ const retryRecoveryNow = asyncHandler(async (req, res) => {
             source: "dashboardController.retryRecoveryNow()",
             message: 'Manual Stripe retry failed',
             error: err,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             userId: userId ?? null,
             metadata: { recoveryId: recoveryId ?? null }
         })
