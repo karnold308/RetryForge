@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+const stripeTestAcct = new Stripe(process.env.STRIPE_SECRET_KEY_TEST)
 import { WebhookEvents } from '../models/index.js'
 const { v4: uuid } = await import('uuid')
 import { StripeWebhookService } from '../services/stripeWebhookService.js'
@@ -40,12 +41,20 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
             req.body, sig, process.env.STRIPE_WEBHOOK_SECRET
         )
     } catch (err) {
-        await logError({
-            source: "stripeWebhookController.handleStripeWebhook()",
-            message: 'Webhook signature verification failed',
-            error: err,
-            metadata: {}
-        })
+        console.log('trying to process webhook with test account info')
+        // try with test account info
+        try {
+            event = stripeTestAcct.webhooks.constructEvent(
+                req.body, sig, process.env.STRIPE_WEBHOOK_SECRET_TEST
+            )
+        } catch (error) {
+            await logError({
+                source: "stripeWebhookController.handleStripeWebhook()",
+                message: 'Webhook signature verification failed',
+                error: err,
+                metadata: {}
+            })
+        }
 
         return res.status(400).send(`Webhook Error: ${err.message}`)
     }
@@ -98,7 +107,7 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
             case "invoice.created":
                 await StripeWebhookService.handleInvoiceCreated(event, ctx)
                 break
-            case "invoice.finalized": 
+            case "invoice.finalized":
                 await StripeWebhookService.handleInvoiceFinalized(event, ctx)
                 break
             case "customer.updated":
@@ -109,7 +118,7 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
                 break
 
             default:
-                // console.log(`Unhandled event type: ${event.type}`)
+            // console.log(`Unhandled event type: ${event.type}`)
         }
 
         processingSucceeded = true
@@ -124,7 +133,7 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
             error: err,
             metadata: {}
         })
-        
+
         if (webhookEvent) {
             await ctx.safeUpdateWebhook({
                 processing_error: err.message

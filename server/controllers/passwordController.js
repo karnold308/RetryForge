@@ -1,4 +1,4 @@
-import { User } from '../models/index.js'
+import { User, StripeAccount } from '../models/index.js'
 import crypto from 'crypto'
 import bcrypt from 'bcrypt'
 import asyncHandler from 'express-async-handler'
@@ -17,14 +17,22 @@ const handleResetPassword = asyncHandler(async (req, res) => {
             message: "Token and password are required."
         })
     }
+    let user
+    let stripeAccount
 
     try {
 
         const incomingHash = crypto.createHash("sha256").update(token).digest("hex")
 
-        const user = await User.findOne({
+        user = await User.findOne({
             where: {
                 password_reset_token: incomingHash
+            }
+        })
+
+        stripeAccount = await StripeAccount.findOne({
+            where: {
+                user_id: userId
             }
         })
 
@@ -73,6 +81,8 @@ const handleResetPassword = asyncHandler(async (req, res) => {
         await logError({
             source: "passwordController.handleResetPassword()",
             message: "Error resetting email",
+            userId: user?.id ?? null,
+            stripeAccountUuid: stripeAccount?.id ?? null,
             error: null,
             metadata: { email: email, error: result?.error ?? null, result: JSON.stringify(result) }
         })
@@ -83,8 +93,8 @@ const handleResetPassword = asyncHandler(async (req, res) => {
 
 const handleForgotPassword = asyncHandler(async (req, res) => {
     const email = req.body.email
-
-    const user = await User.findOne({
+    let stripeAccount
+    let user = await User.findOne({
         where: {
             email: email
         }
@@ -97,6 +107,12 @@ const handleForgotPassword = asyncHandler(async (req, res) => {
                 "If an account exists, we've sent password reset instructions."
         })
     }
+
+    stripeAccount = await StripeAccount.findOne({
+            where: {
+                user_id: userId
+            }
+        })
 
     const token = crypto.randomBytes(32).toString("hex")
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex")
@@ -118,6 +134,8 @@ const handleForgotPassword = asyncHandler(async (req, res) => {
                 await logError({
                     source: "passwordController.handleForgotPassword()",
                     message: "Error sending forgot password email",
+                    userId: user?.id ?? null,
+                    stripeAccountUuid: stripeAccount?.id ?? null,
                     error: null,
                     metadata: { email: email, error: result?.error ?? null, result: JSON.stringify(result) }
                 })

@@ -2,10 +2,11 @@ import {
     StripeAccountCustomers, StripeAccount,
     RecoveryCases, WebhookEvents,
     StripeCustomerSnapshots, RecoveryCommunications,
-    RecoveryStrategyStats
+    RecoveryStrategyStats, User
 }
     from '../models/index.js'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+const stripeTestAcct = new Stripe(process.env.STRIPE_SECRET_KEY_TEST)
 import Stripe from 'stripe'
 import { Op } from 'sequelize'
 import { RecoveryCaseService } from '../services/recoveryCaseService.js'
@@ -443,12 +444,33 @@ const handleInvoicePaymentFailed = async (event, ctx) => {
     const paymentIntentId = invoice.payment_intent
 
     if (undefined !== paymentIntentId) {
-        const paymentIntent = await stripe.paymentIntents.retrieve(
-            invoice.payment_intent, { expand: ['last_payment_error'] },
-            {
-                stripeAccount: stripeAccount.stripe_account_id
-            }
-        )
+
+        const user = User.findOne({
+            where: { id: stripeAccount.user_id }
+        })
+
+        if (!user) {
+            return
+        }
+
+        let paymentIntent
+
+        // check for tester account
+        if (user.roles.includes(5555)) {
+            paymentIntent = await stripeTestAcct.paymentIntents.retrieve(
+                invoice.payment_intent, { expand: ['last_payment_error'] },
+                {
+                    stripeAccount: stripeAccount.stripe_account_id
+                }
+            )
+        } else {
+            paymentIntent = await stripe.paymentIntents.retrieve(
+                invoice.payment_intent, { expand: ['last_payment_error'] },
+                {
+                    stripeAccount: stripeAccount.stripe_account_id
+                }
+            )
+        }
 
         if (paymentIntent) {
             await ctx.safeUpdateWebhook({

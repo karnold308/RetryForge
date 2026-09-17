@@ -1,7 +1,6 @@
 const { v4: uuid } = await import('uuid')
-import { StripeAccountCustomers, StripeCustomerSnapshots } from '../models/index.js'
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 import Stripe from 'stripe'
+import { StripeAccountCustomers, StripeCustomerSnapshots, User } from '../models/index.js'
 import { logError } from '../services/loggerService.js'
 
 export const resolveCustomerFromInvoice = async ({
@@ -20,10 +19,25 @@ export const resolveCustomerFromInvoice = async ({
 
     try {
 
+        const user = await User.findOne({
+            where: { id: stripeAccount.user_id }
+        })
+
+        if (!user) {
+            return
+        }
 
         if (!custEmail) {
-            const connectedStripe = new Stripe(
-                process.env.STRIPE_SECRET_KEY, { stripeAccount: stripeAccount.stripe_account_id })
+            let connectedStripe
+
+            // check for tester account
+            if (user.roles.includes(5555)) {
+                connectedStripe = new Stripe(
+                    process.env.STRIPE_SECRET_KEY_TEST, { stripeAccount: stripeAccount.stripe_account_id })
+            } else {
+                connectedStripe = new Stripe(
+                    process.env.STRIPE_SECRET_KEY, { stripeAccount: stripeAccount.stripe_account_id })
+            }
             customer = await connectedStripe.customers.retrieve(invoice.customer)
             if (!customer.deleted) {
                 custEmail = customer.email
@@ -96,7 +110,7 @@ export const resolveCustomerFromInvoice = async ({
             message: "Issue resolving customer ",
             error: err,
             stripeAccountUuid: stripeAccount?.id ?? null,
-            metaData: {customerEmail: custEmail, eventId: eventId}
+            metaData: { customerEmail: custEmail, eventId: eventId }
         })
 
         return null

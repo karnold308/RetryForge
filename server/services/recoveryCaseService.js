@@ -1,5 +1,5 @@
 const { v4: uuid } = await import('uuid')
-import { RecoveryCases } from '../models/index.js'
+import { RecoveryCases, User } from '../models/index.js'
 import { logError } from '../services/loggerService.js'
 
 // todo: add invoice parameters instead of entire invoice
@@ -22,8 +22,16 @@ const upsertFromInvoice = async ({
         invoice?.subscription ||
         null
 
+    let user
+
     
     try {
+
+        user = await User.findOne({
+            where: {
+                id: stripeAccount.user_id
+            }
+        })
 
 
         const [recoveryCase, created] = await RecoveryCases.findOrCreate({
@@ -98,6 +106,8 @@ const upsertFromInvoice = async ({
         await logError({
             source: "recoveryCaseService.upsertFromInvoice()",
             message: "Error creating/updating recovery case",
+            stripeAccountUuid: stripeAccount?.id ?? null,
+            userId: user.id ?? null,
             error: err,
             metadata: { stripeAccountId: stripeAccount?.id ?? null, invoiceId: invoice?.id,
                 historyImportedAt: historyImportedAt, sourceEventId: sourceEventId
