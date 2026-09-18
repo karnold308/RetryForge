@@ -52,7 +52,7 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
                 source: "stripeWebhookController.handleStripeWebhook()",
                 message: 'Webhook signature verification failed',
                 error: err,
-                metadata: {}
+                metadata: {reqBody: JSON.stringify(req.body)}
             })
         }
 
