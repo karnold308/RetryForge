@@ -129,6 +129,7 @@ const handleLogout = async (req, res) => {
     const cookies = req.cookies
     if (!cookies?.jwt) return res.sendStatus(204) // no content
 
+    
     let foundUser
 
     try {
