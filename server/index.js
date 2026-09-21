@@ -31,6 +31,7 @@ import { router as forgotPassword } from './routes/forgotPassword.js'
 import { router as resetPassword } from './routes/resetPassword.js'
 import { router as jobsProcessor } from './routes/api/jobsProcessor.js'
 import { router as adminLogs } from './routes/api/adminLogs.js'
+import { router as sysConfig } from './routes/api/sysConfig.js'
 
 
 import { verifyJWT } from './middleware/verifyJWT.js'
@@ -106,6 +107,7 @@ app.use('/api/stripe/disconnect', disconnect)
 app.use('/api/stripe/refresh', stripeRefresh)
 app.use('/api/stripe/historySync', stripeHistorySync)
 app.use('/api/admin/logs', adminLogs)
+app.use('/api/admin/configs', sysConfig)
 
 
 // app.use('/employees', import('./routes/api/employees'))
