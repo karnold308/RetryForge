@@ -1,7 +1,7 @@
 import Stripe from 'stripe'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 const stripeTestAcct = new Stripe(process.env.STRIPE_SECRET_KEY_TEST)
-import { WebhookEvents } from '../models/index.js'
+import { WebhookEvents, SysConfig } from '../models/index.js'
 const { v4: uuid } = await import('uuid')
 import { StripeWebhookService } from '../services/stripeWebhookService.js'
 import asyncHandler from 'express-async-handler'
@@ -41,18 +41,37 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
             req.body, sig, process.env.STRIPE_WEBHOOK_SECRET
         )
     } catch (err) {
-        console.log('trying to process webhook with test account info')
-        // try with test account info
-        try {
-            event = stripeTestAcct.webhooks.constructEvent(
-                req.body, sig, process.env.STRIPE_WEBHOOK_SECRET_TEST
-            )
-        } catch (error) {
+        const testModeConfig = await SysConfig.findOne({
+            where: {
+                config_name: 'test mode'
+            }
+        })
+
+        if (testModeConfig && ('true' === testModeConfig.config_value.toLowerCase() || 'yes' ===  testModeConfig.config_value.toLowerCase() || 
+                't' === testModeConfig.config_value.toLowerCase() || 'y' === testModeConfig.config_value.toLowerCase())) {
+                
+                
+
+            console.log('trying to process webhook with test account info')
+            // try with test account info
+            try {
+                event = stripeTestAcct.webhooks.constructEvent(
+                    req.body, sig, process.env.STRIPE_WEBHOOK_SECRET_TEST
+                )
+            } catch (error) {
+                await logError({
+                    source: "stripeWebhookController.handleStripeWebhook() - using test account keys",
+                    message: 'Webhook signature verification failed for test account',
+                    error: err,
+                    metadata: { reqBody: JSON.stringify(req.body) }
+                })
+            }
+        } else {
             await logError({
                 source: "stripeWebhookController.handleStripeWebhook()",
                 message: 'Webhook signature verification failed',
                 error: err,
-                metadata: {reqBody: JSON.stringify(req.body)}
+                metadata: { reqBody: JSON.stringify(req.body) }
             })
         }
 

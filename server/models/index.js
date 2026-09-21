@@ -9,6 +9,7 @@ import RecoveryCommunications from './RecoveryCommunications.js'
 import RecoveryStrategyStats from './RecoveryStrategyStats.js'
 import CronJobAudit from './CronJobAudit.js'
 import ApplicationLogs from './ApplicationLogs.js'
+import SysConfig from './SysConfig.js'
 
 
 User.hasOne(StripeAccount, {
@@ -177,12 +178,24 @@ StripeAccount.hasMany(ApplicationLogs, {
     as: "logs"
 })
 
+
+SysConfig.belongsTo(User, {
+    foreignKey: "last_updated_user_uuid",
+    as: "user"
+})
+
+User.hasMany(SysConfig, {
+    foreignKey: "last_updated_user_uuid",
+    as: "sysConfig"
+})
+
 export {
     User, StripeAccount,
     RecoveryCases, WebhookEvents,
     StripeAccountCustomers, RecoveryActions,
     StripeCustomerSnapshots, RecoveryCommunications,
     RecoveryStrategyStats, CronJobAudit, ApplicationLogs,
+    SysConfig
 
 
 }
