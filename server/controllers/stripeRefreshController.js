@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+const stripeTestAcct = new Stripe(process.env.STRIPE_SECRET_KEY_TEST)
 import { User, StripeAccount } from '../models/index.js'
 import asyncHandler from 'express-async-handler'
 const clientId = process.env.STRIPE_CLIENT_ID
@@ -22,9 +23,18 @@ const handleAccountRefresh = asyncHandler(async (req, res) => {
 
         stripeAccount = user?.stripeAccount
 
-        const account = await stripe.accounts.retrieve(
-            stripeAccount.stripe_account_id
-        )
+        let account
+        // check for tester account
+        if (user.roles.includes(5555)) {
+            account = await stripeTestAcct.accounts.retrieve(
+                stripeAccount.stripe_account_id
+            )
+        } else {
+            account = await stripe.accounts.retrieve(
+                stripeAccount.stripe_account_id
+            )
+        }
+
 
         await stripeAccount.update({
             charges_enabled: account.charges_enabled,
@@ -47,7 +57,7 @@ const handleAccountRefresh = asyncHandler(async (req, res) => {
             userId: userId ?? null,
             metadata: {}
         })
-        
+
         return res.status(500).json({
             message: "Failed to refresh Stripe"
         })
