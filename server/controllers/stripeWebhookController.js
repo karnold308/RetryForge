@@ -63,7 +63,7 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
                     source: "stripeWebhookController.handleStripeWebhook() - using test account keys",
                     message: 'Webhook signature verification failed for test account',
                     error: err,
-                    metadata: { reqBody: JSON.stringify(req.body) }
+                    metadata: {  }
                 })
             }
         } else {
@@ -71,7 +71,7 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
                 source: "stripeWebhookController.handleStripeWebhook()",
                 message: 'Webhook signature verification failed',
                 error: err,
-                metadata: { reqBody: JSON.stringify(req.body) }
+                metadata: { }
             })
         }
 
