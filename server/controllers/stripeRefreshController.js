@@ -40,8 +40,8 @@ const handleAccountRefresh = asyncHandler(async (req, res) => {
 
     } catch (err) {
         await logError({
-            source: "meController.handleChangePassword()",
-            message: 'Issue when changing password',
+            source: "stripeRefreshContrller.handleAccountRefresh()",
+            message: 'Issue when refreshing account details',
             stripeAccountUuid: stripeAccount?.id ?? null,
             error: err,
             userId: userId ?? null,
