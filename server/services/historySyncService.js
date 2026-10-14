@@ -2,7 +2,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 const stripeTestAcct = new Stripe(process.env.STRIPE_SECRET_KEY_TEST)
 import { CustomerSyncService } from './customerSyncService.js'
 import { RecoveryCaseService } from './recoveryCaseService.js'
-import { StripeAccount, RecoveryCases } from '../models/index.js'
+import { StripeAccount, RecoveryCases, User } from '../models/index.js'
 import Stripe from 'stripe'
 import { logError } from '../services/loggerService.js'
 
